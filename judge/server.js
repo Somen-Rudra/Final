@@ -7,7 +7,7 @@ const cors = require("cors");
 const app = express();
 
 app.use(express.json({ limit: "64kb" }));
-app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5173" }));
+app.use(cors({ origin: process.env.CORS_ORIGIN || "http://localhost:5000" }));
 
 // ─────────────────────────────────────────────
 // Config
@@ -19,9 +19,14 @@ const POOL_SIZE = parseInt(process.env.POOL_SIZE || "1", 10);
 const RECYCLE_AFTER = parseInt(process.env.RECYCLE_AFTER || "200", 10);
 const MAX_OUTPUT = parseInt(process.env.MAX_OUTPUT || "10000", 10);
 const MAX_CODE_LENGTH = parseInt(process.env.MAX_CODE_LENGTH || "65536", 10);
-const RATE_LIMIT_WINDOW = parseInt(process.env.RATE_LIMIT_WINDOW || "60000", 10);
-const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX || "10", 10);
 const MAX_TEST_CASES = parseInt(process.env.MAX_TEST_CASES || "20", 10);
+const MAX_QUEUE_DEPTH = parseInt(process.env.MAX_QUEUE_DEPTH || "100", 10);
+
+// Rate limits — editor (/run) vs submission (/submit)
+const RUN_LIMIT_WINDOW = parseInt(process.env.RUN_LIMIT_WINDOW || "60000", 10);
+const RUN_LIMIT_MAX = parseInt(process.env.RUN_LIMIT_MAX || "30", 10); // frequent: code editor
+const SUB_LIMIT_WINDOW = parseInt(process.env.SUB_LIMIT_WINDOW || "60000", 10);
+const SUB_LIMIT_MAX = parseInt(process.env.SUB_LIMIT_MAX || "5", 10); // rare: final submit
 
 // ─────────────────────────────────────────────
 // Language definitions
@@ -42,7 +47,10 @@ const LANGUAGES = {
     ext: "c",
     image: "judge-sandbox:latest",
     command: (file, bin) => [
-      "timeout", "5s", "sh", "-c",
+      "timeout",
+      "5s",
+      "sh",
+      "-c",
       `gcc /tmp/${file} -O2 -pipe -s -o /tmp/${bin} -lm && /tmp/${bin}`,
     ],
   },
@@ -50,11 +58,66 @@ const LANGUAGES = {
     ext: "cpp",
     image: "judge-sandbox:latest",
     command: (file, bin) => [
-      "timeout", "5s", "sh", "-c",
+      "timeout",
+      "5s",
+      "sh",
+      "-c",
       `g++ /tmp/${file} -O2 -pipe -s -o /tmp/${bin} && /tmp/${bin}`,
     ],
   },
 };
+
+// Language key normalisation: accept "js"/"py" aliases from DB
+const LANG_ALIASES = { js: "javascript", py: "python" };
+function resolveLanguage(lang) {
+  return LANG_ALIASES[lang] || lang;
+}
+
+// ─────────────────────────────────────────────
+// DB stub  (replace with your real Mongo client)
+// ─────────────────────────────────────────────
+
+/**
+ * Fetch a problem document by slug.
+ * Shape expected:
+ *   { header, driver, visibleTestCases, hiddenTestCases, codeStub, timeLimit }
+ *
+ * Replace this with your actual DB call, e.g.:
+ *   const Problem = require('./models/problem');
+ *   async function fetchProblem(slug) { return Problem.findOne({ slug }); }
+ */
+async function fetchProblem(slug) {
+  // TODO: replace with real DB lookup
+  throw new Error(`fetchProblem("${slug}") — wire up your DB here`);
+}
+
+// ─────────────────────────────────────────────
+// Code assembly  (SERVER-SIDE — clients never see drivers or hidden cases)
+// ─────────────────────────────────────────────
+
+/**
+ * Assemble a complete, runnable program from problem metadata + user code.
+ *
+ * Order: header  →  userCode  →  driver
+ *
+ * The driver owns main() / top-level IO.  userCode is a pure function/solution.
+ * Neither hidden test cases nor driver logic ever leave this process.
+ */
+function assembleCode(problem, language, userCode) {
+  const langKey = resolveLanguage(language); // "js" → "javascript"
+  const dbKey =
+    { javascript: "js", python: "py", c: "c", cpp: "cpp" }[langKey] || langKey;
+
+  const header = problem.header?.[dbKey] ?? "";
+  const driver = problem.driver?.[dbKey];
+
+  if (!driver)
+    throw new Error(
+      `No driver found for language "${language}" on this problem`,
+    );
+
+  return [header, userCode, driver].filter(Boolean).join("\n\n");
+}
 
 // ─────────────────────────────────────────────
 // Spawn helper
@@ -73,7 +136,9 @@ function runProcess(command, args, stdin = "") {
       if (killed) return;
       killed = true;
       if (reason === "output") outputExceeded = true;
-      try { child.kill("SIGKILL"); } catch {}
+      try {
+        child.kill("SIGKILL");
+      } catch {}
     };
 
     const timer = setTimeout(() => killChild("timeout"), TIMEOUT_MS);
@@ -101,7 +166,14 @@ function runProcess(command, args, stdin = "") {
 
     child.on("close", (code, signal) => {
       clearTimeout(timer);
-      resolve({ stdout, stderr, exitCode: code, signal, timedOut: killed && !outputExceeded, outputExceeded });
+      resolve({
+        stdout,
+        stderr,
+        exitCode: code,
+        signal,
+        timedOut: killed && !outputExceeded,
+        outputExceeded,
+      });
     });
 
     if (stdin) child.stdin.write(stdin);
@@ -115,7 +187,12 @@ function runProcess(command, args, stdin = "") {
 
 async function containerExists(name) {
   const r = await runProcess("docker", [
-    "ps", "-a", "--filter", `name=^${name}$`, "--format", "{{.Names}}",
+    "ps",
+    "-a",
+    "--filter",
+    `name=^${name}$`,
+    "--format",
+    "{{.Names}}",
   ]);
   return r.stdout.trim() === name;
 }
@@ -123,20 +200,36 @@ async function containerExists(name) {
 async function startContainer(name, language) {
   const lang = LANGUAGES[language];
   await runProcess("docker", [
-    "run", "-d", "--init", "--name", name,
-    "--network", "none",
-    "--memory", "256m",
-    "--memory-swap", "256m",
-    "--memory-swappiness", "0",
+    "run",
+    "-d",
+    "--init",
+    "--name",
+    name,
+    "--network",
+    "none",
+    "--memory",
+    "256m",
+    "--memory-swap",
+    "256m",
+    "--memory-swappiness",
+    "0",
     "--oom-kill-disable=false",
-    "--cpus", "1",
-    "--pids-limit", "64",
+    "--cpus",
+    "1",
+    "--pids-limit",
+    "64",
     "--read-only",
-    "--tmpfs", "/tmp:rw,exec,nosuid,size=64m",
-    "--cap-drop", "ALL",
-    "--security-opt", "no-new-privileges",
-    "--user", "1000:1000",
-    lang.image, "sleep", "infinity",
+    "--tmpfs",
+    "/tmp:rw,exec,nosuid,size=64m",
+    "--cap-drop",
+    "ALL",
+    "--security-opt",
+    "no-new-privileges",
+    "--user",
+    "1000:1000",
+    lang.image,
+    "sleep",
+    "infinity",
   ]);
 }
 
@@ -146,9 +239,17 @@ async function removeContainer(name) {
 
 async function copyCode(container, filename, code) {
   return new Promise((resolve, reject) => {
-    const child = spawn("docker", ["exec", "-i", container, "tee", `/tmp/${filename}`]);
+    const child = spawn("docker", [
+      "exec",
+      "-i",
+      container,
+      "tee",
+      `/tmp/${filename}`,
+    ]);
     let stderr = "";
-    child.stderr.on("data", (d) => { stderr += d.toString(); });
+    child.stderr.on("data", (d) => {
+      stderr += d.toString();
+    });
     child.stdin.write(code);
     child.stdin.end();
     child.on("close", (code) => {
@@ -160,20 +261,30 @@ async function copyCode(container, filename, code) {
 
 async function cleanupTmp(container) {
   try {
-    await runProcess("docker", ["exec", container, "find", "/tmp", "-mindepth", "1", "-delete"]);
-  } catch { /* best-effort */ }
+    await runProcess("docker", [
+      "exec",
+      container,
+      "find",
+      "/tmp",
+      "-mindepth",
+      "1",
+      "-delete",
+    ]);
+  } catch {
+    /* best-effort */
+  }
 }
 
 // ─────────────────────────────────────────────
-// Container pool
+// Container pool  (work-queue model, not round-robin)
 // ─────────────────────────────────────────────
 
 class ContainerPool {
   constructor(language, size) {
     this.language = language;
     this.size = size;
-    this.slots = [];
-    this.roundRobin = 0;
+    this.freeSlots = []; // slot objects ready to accept work
+    this.queue = []; // { code, stdin?, testCases?, resolve, reject, kind }
   }
 
   slotName(index) {
@@ -189,124 +300,125 @@ class ContainerPool {
       }
       console.log(`[pool:${this.language}:${i}] starting`);
       await startContainer(name, this.language);
-
-      let release;
-      const ready = new Promise((r) => { release = r; });
-      release();
-
-      this.slots.push({ name, ready, release, executions: 0, recycling: false });
+      this.freeSlots.push({ name, executions: 0, recycling: false });
     }
   }
 
-  _nextSlot() {
-    const slot = this.slots[this.roundRobin % this.size];
-    this.roundRobin++;
-    return slot;
+  // ── Public: enqueue a single run ─────────────────────────────────────────
+
+  execute(code, stdin = "") {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ kind: "run", code, stdin, resolve, reject });
+      this._drain();
+    });
   }
 
-  /**
-   * Execute a single run (code + stdin) on the pool.
-   * Used internally by both /run and /run-tests.
-   */
-  async execute(code, stdin = "") {
+  // ── Public: enqueue a test batch ─────────────────────────────────────────
+
+  executeTests(code, testCases) {
+    return new Promise((resolve, reject) => {
+      this.queue.push({ kind: "tests", code, testCases, resolve, reject });
+      this._drain();
+    });
+  }
+
+  // ── Internal: pull next job onto next free slot ───────────────────────────
+
+  _drain() {
+    while (this.queue.length > 0 && this.freeSlots.length > 0) {
+      const slot = this.freeSlots.pop();
+      const job = this.queue.shift();
+      this._dispatch(slot, job);
+    }
+  }
+
+  async _dispatch(slot, job) {
+    try {
+      let result;
+      if (job.kind === "run") {
+        result = await this._runOne(slot, job.code, job.stdin);
+      } else {
+        result = await this._runTests(slot, job.code, job.testCases);
+      }
+      job.resolve(result);
+    } catch (err) {
+      job.reject(err);
+    } finally {
+      slot.executions +=
+        job.kind === "tests" ? (job.testCases?.length ?? 1) : 1;
+
+      if (slot.executions >= RECYCLE_AFTER && !slot.recycling) {
+        slot.recycling = true;
+        setImmediate(() => this._recycle(slot));
+      } else {
+        this.freeSlots.push(slot);
+        this._drain();
+      }
+    }
+  }
+
+  // ── Execution internals ───────────────────────────────────────────────────
+
+  async _runOne(slot, code, stdin) {
     const lang = LANGUAGES[this.language];
-    const slot = this._nextSlot();
-
-    const previous = slot.ready;
-    let release;
-    slot.ready = new Promise((r) => { release = r; });
-
-    await previous;
-
     const filename = `${crypto.randomUUID()}.${lang.ext}`;
     const binary = crypto.randomUUID();
-    let result;
 
     try {
       await copyCode(slot.name, filename, code);
-      result = await runProcess(
+      return await runProcess(
         "docker",
         ["exec", "-i", slot.name, ...lang.command(filename, binary)],
         stdin,
       );
     } finally {
       await cleanupTmp(slot.name);
-      slot.executions++;
-
-      if (slot.executions >= RECYCLE_AFTER && !slot.recycling) {
-        slot.recycling = true;
-        setImmediate(() => this._recycle(slot));
-      }
-
-      release();
     }
-
-    return result;
   }
 
-  /**
-   * Run multiple test cases against the same code, sequentially on one slot.
-   * The code is copied once; each test case feeds a different stdin.
-   *
-   * Returns an array of per-testcase result objects.
-   */
-  async executeTests(code, testCases) {
+  async _runTests(slot, code, testCases) {
     const lang = LANGUAGES[this.language];
-    const slot = this._nextSlot();
-
-    const previous = slot.ready;
-    let release;
-    slot.ready = new Promise((r) => { release = r; });
-
-    await previous;
-
     const filename = `${crypto.randomUUID()}.${lang.ext}`;
-
-    // For compiled languages the binary name stays the same across test cases —
-    // we compile once and run N times.
     const binary = crypto.randomUUID();
-
     const results = [];
 
     try {
-      // ── Copy source once ──────────────────────────────────────────────────
       await copyCode(slot.name, filename, code);
 
-      // ── For compiled languages: compile once, then run N times ───────────
       const isCompiled = this.language === "c" || this.language === "cpp";
 
       if (isCompiled) {
-        const compileCmd = this.language === "c"
-          ? `gcc /tmp/${filename} -O2 -pipe -s -o /tmp/${binary} -lm`
-          : `g++ /tmp/${filename} -O2 -pipe -s -o /tmp/${binary}`;
+        const compileCmd =
+          this.language === "c"
+            ? `gcc /tmp/${filename} -O2 -pipe -s -o /tmp/${binary} -lm`
+            : `g++ /tmp/${filename} -O2 -pipe -s -o /tmp/${binary}`;
 
-        const compileResult = await runProcess(
-          "docker",
-          ["exec", "-i", slot.name, "sh", "-c", compileCmd],
-        );
+        const compileResult = await runProcess("docker", [
+          "exec",
+          "-i",
+          slot.name,
+          "sh",
+          "-c",
+          compileCmd,
+        ]);
 
-        // If compilation fails, mark ALL test cases as failed with the same error
         if (compileResult.exitCode !== 0) {
-          for (let i = 0; i < testCases.length; i++) {
-            results.push({
-              index: i,
-              passed: false,
-              status: "compile_error",
-              stdin: testCases[i].input,
-              expectedOutput: testCases[i].output,
-              actualOutput: "",
-              stderr: compileResult.stderr,
-              exitCode: compileResult.exitCode,
-              timedOut: false,
-              outputExceeded: false,
-              elapsed: 0,
-            });
-          }
-          return results;
+          return testCases.map((tc, i) => ({
+            index: i,
+            passed: false,
+            status: "compile_error",
+            stdin: tc.input,
+            expectedOutput: tc.output,
+            actualOutput: "",
+            stderr: compileResult.stderr,
+            exitCode: compileResult.exitCode,
+            timedOut: false,
+            outputExceeded: false,
+            elapsed: 0,
+          }));
         }
       }
 
-      // ── Run each test case ────────────────────────────────────────────────
       for (let i = 0; i < testCases.length; i++) {
         const tc = testCases[i];
         const stdin = tc.input ?? "";
@@ -321,10 +433,11 @@ class ContainerPool {
         const elapsed = Date.now() - t0;
 
         const actual = normalizeOutput(runResult.stdout);
-        const passed = !runResult.timedOut
-          && !runResult.outputExceeded
-          && runResult.exitCode === 0
-          && actual === expected;
+        const passed =
+          !runResult.timedOut &&
+          !runResult.outputExceeded &&
+          runResult.exitCode === 0 &&
+          actual === expected;
 
         results.push({
           index: i,
@@ -343,27 +456,25 @@ class ContainerPool {
       }
     } finally {
       await cleanupTmp(slot.name);
-      slot.executions += testCases.length;
-
-      if (slot.executions >= RECYCLE_AFTER && !slot.recycling) {
-        slot.recycling = true;
-        setImmediate(() => this._recycle(slot));
-      }
-
-      release();
     }
 
     return results;
   }
 
+  // ── Recycle ───────────────────────────────────────────────────────────────
+
   async _recycle(slot) {
-    const index = this.slots.indexOf(slot);
-    console.log(`[pool:${this.language}:${index}] recycling after ${slot.executions} executions`);
+    const index = this.slots ? this.slots.indexOf(slot) : "?";
+    console.log(
+      `[pool:${this.language}:${index}] recycling after ${slot.executions} executions`,
+    );
     try {
       await removeContainer(slot.name);
       await startContainer(slot.name, this.language);
       slot.executions = 0;
       slot.recycling = false;
+      this.freeSlots.push(slot);
+      this._drain();
       console.log(`[pool:${this.language}:${index}] recycled OK`);
     } catch (err) {
       console.error(`[pool:${this.language}:${index}] recycle failed`, err);
@@ -373,17 +484,27 @@ class ContainerPool {
 
   async destroy() {
     for (let i = 0; i < this.size; i++) {
-      const name = this.slotName(i);
-      try { await removeContainer(name); } catch {}
+      try {
+        await removeContainer(this.slotName(i));
+      } catch {}
     }
   }
 
+  get queueDepth() {
+    return this.queue.length;
+  }
+
   status() {
-    return this.slots.map((s) => ({
-      name: s.name,
-      executions: s.executions,
-      recycling: s.recycling,
-    }));
+    return {
+      freeSlots: this.freeSlots.length,
+      busySlots: this.size - this.freeSlots.length,
+      queueDepth: this.queue.length,
+      slots: [...this.freeSlots].map((s) => ({
+        name: s.name,
+        executions: s.executions,
+        recycling: s.recycling,
+      })),
+    };
   }
 }
 
@@ -391,7 +512,6 @@ class ContainerPool {
 // Helpers
 // ─────────────────────────────────────────────
 
-/** Trim trailing whitespace / normalise line endings for comparison */
 function normalizeOutput(str) {
   return (str || "")
     .replace(/\r\n/g, "\n")
@@ -407,6 +527,10 @@ function deriveStatus(result, passed) {
   if (result.exitCode !== 0) return "runtime_error";
   if (!passed) return "wrong_answer";
   return "accepted";
+}
+
+function totalQueueDepth() {
+  return Object.values(pools).reduce((sum, p) => sum + p.queueDepth, 0);
 }
 
 // ─────────────────────────────────────────────
@@ -434,67 +558,92 @@ async function destroyPools() {
 
 function validate(body) {
   const { language, code, stdin } = body || {};
-  if (!language || !LANGUAGES[language]) return "Unsupported language";
+  if (!language || !LANGUAGES[resolveLanguage(language)])
+    return "Unsupported language";
   if (typeof code !== "string" || !code.trim()) return "Code must be non-empty";
-  if (code.length > MAX_CODE_LENGTH) return `Code exceeds ${MAX_CODE_LENGTH} byte limit`;
-  if (stdin !== undefined && typeof stdin !== "string") return "stdin must be a string";
+  if (code.length > MAX_CODE_LENGTH)
+    return `Code exceeds ${MAX_CODE_LENGTH} byte limit`;
+  if (stdin !== undefined && typeof stdin !== "string")
+    return "stdin must be a string";
   return null;
 }
 
-function validateTests(body) {
-  const { language, code, testCases } = body || {};
-  if (!language || !LANGUAGES[language]) return "Unsupported language";
-  if (typeof code !== "string" || !code.trim()) return "Code must be non-empty";
-  if (code.length > MAX_CODE_LENGTH) return `Code exceeds ${MAX_CODE_LENGTH} byte limit`;
-  if (!Array.isArray(testCases) || testCases.length === 0)
-    return "testCases must be a non-empty array";
-  if (testCases.length > MAX_TEST_CASES)
-    return `testCases exceeds the limit of ${MAX_TEST_CASES}`;
-  for (let i = 0; i < testCases.length; i++) {
-    const tc = testCases[i];
-    if (typeof tc !== "object" || tc === null)
-      return `testCases[${i}] must be an object`;
-    if (tc.input !== undefined && typeof tc.input !== "string")
-      return `testCases[${i}].input must be a string`;
-    if (tc.output !== undefined && typeof tc.output !== "string")
-      return `testCases[${i}].output must be a string`;
-  }
+function validateSubmit(body) {
+  const { language, userCode, problemSlug } = body || {};
+  if (!language || !LANGUAGES[resolveLanguage(language)])
+    return "Unsupported language";
+  if (typeof userCode !== "string" || !userCode.trim())
+    return "userCode must be non-empty";
+  if (userCode.length > MAX_CODE_LENGTH)
+    return `userCode exceeds ${MAX_CODE_LENGTH} byte limit`;
+  if (typeof problemSlug !== "string" || !problemSlug.trim())
+    return "problemSlug must be a non-empty string";
   return null;
 }
 
 // ─────────────────────────────────────────────
-// Rate limiting
+// Rate limiters  — SEPARATE budgets per use-case
 // ─────────────────────────────────────────────
 
-const limiter = rateLimit({
-  windowMs: RATE_LIMIT_WINDOW,
-  max: RATE_LIMIT_MAX,
+// /run  — code editor "Run" button, hits frequently
+const runLimiter = rateLimit({
+  windowMs: RUN_LIMIT_WINDOW,
+  max: RUN_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { error: "Too many requests, please slow down" },
+  message: { error: "Too many run requests, slow down" },
 });
 
-app.use("/run", limiter);
-app.use("/run-tests", limiter); // shared budget — same window
+// /submit — final submission, should be rare
+const submitLimiter = rateLimit({
+  windowMs: SUB_LIMIT_WINDOW,
+  max: SUB_LIMIT_MAX,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many submissions, please wait before resubmitting" },
+});
+
+app.use("/run", runLimiter);
+app.use("/submit", submitLimiter);
+
+// ─────────────────────────────────────────────
+// Queue depth guard  (shared across all pools)
+// ─────────────────────────────────────────────
+
+function checkQueueDepth(req, res, next) {
+  if (totalQueueDepth() >= MAX_QUEUE_DEPTH) {
+    return res.status(503).json({ error: "Server busy, try again shortly" });
+  }
+  next();
+}
 
 // ─────────────────────────────────────────────
 // Routes
 // ─────────────────────────────────────────────
 
+// Health
 app.get("/health", (_req, res) => {
   const poolStatus = {};
   for (const [lang, pool] of Object.entries(pools)) {
     poolStatus[lang] = pool.status();
   }
-  res.json({ status: "ok", poolSize: POOL_SIZE, pools: poolStatus });
+  res.json({
+    status: "ok",
+    poolSize: POOL_SIZE,
+    queueDepth: totalQueueDepth(),
+    pools: poolStatus,
+  });
 });
 
-// Single run (unchanged behaviour)
-app.post("/run", async (req, res) => {
+// ── /run — code editor scratchpad ────────────────────────────────────────────
+//   Accepts raw code + optional stdin.  No problem DB lookup.
+//   Use this for "Run" button (user-visible test cases only, no grading).
+app.post("/run", checkQueueDepth, async (req, res) => {
   const error = validate(req.body);
   if (error) return res.status(400).json({ error });
 
-  const { language, code, stdin = "" } = req.body;
+  const { code, stdin = "" } = req.body;
+  const language = resolveLanguage(req.body.language);
   const pool = pools[language];
   if (!pool) return res.status(503).json({ error: "Pool not ready" });
 
@@ -515,29 +664,86 @@ app.post("/run", async (req, res) => {
     return res.status(500).json({ error: "Execution failed" });
   }
 });
- 
-app.post("/run-tests", async (req, res) => {
-  const error = validateTests(req.body);
+
+// ── /submit — graded submission ───────────────────────────────────────────────
+//   Accepts userCode + problemSlug.  Fetches problem from DB server-side.
+//   Assembles full program (header + userCode + driver).
+//   Runs ALL test cases (visible + hidden).  Hidden cases never sent to client.
+app.post("/submit", checkQueueDepth, async (req, res) => {
+  const error = validateSubmit(req.body);
   if (error) return res.status(400).json({ error });
 
-  const { language, code, testCases } = req.body;
+  const { userCode, problemSlug } = req.body;
+  const language = resolveLanguage(req.body.language);
   const pool = pools[language];
   if (!pool) return res.status(503).json({ error: "Pool not ready" });
 
+  // ── Fetch problem (server-side only) ──────────────────────────────────────
+  let problem;
+  try {
+    problem = await fetchProblem(problemSlug);
+    if (!problem) return res.status(404).json({ error: "Problem not found" });
+  } catch (err) {
+    console.error("[/submit] DB error", err);
+    return res.status(500).json({ error: "Could not load problem" });
+  }
+
+  // ── Assemble full code ────────────────────────────────────────────────────
+  let code;
+  try {
+    code = assembleCode(problem, language, userCode);
+  } catch (err) {
+    return res.status(400).json({ error: err.message });
+  }
+
+  // ── Combine visible + hidden — order matters for index alignment ──────────
+  const visibleCount = problem.visibleTestCases?.length ?? 0;
+  const testCases = [
+    ...(problem.visibleTestCases ?? []),
+    ...(problem.hiddenTestCases ?? []),
+  ];
+
+  if (testCases.length === 0) {
+    return res.status(500).json({ error: "Problem has no test cases" });
+  }
+  if (testCases.length > MAX_TEST_CASES) {
+    return res.status(500).json({ error: "Problem exceeds test case limit" });
+  }
+
+  // ── Execute ───────────────────────────────────────────────────────────────
   const batchStart = Date.now();
   try {
     const results = await pool.executeTests(code, testCases);
     const passed = results.filter((r) => r.passed).length;
+
+    // Strip hidden test case inputs/outputs from the response.
+    // The client sees: visible results in full, hidden results as pass/fail only.
+    const sanitizedResults = results.map((r, i) => {
+      const isHidden = i >= visibleCount;
+      if (isHidden) {
+        return {
+          index: r.index,
+          passed: r.passed,
+          status: r.status,
+          // No stdin / expectedOutput / actualOutput for hidden cases
+          stderr: r.stderr,
+          exitCode: r.exitCode,
+          timedOut: r.timedOut,
+          elapsed: r.elapsed,
+        };
+      }
+      return r;
+    });
 
     return res.json({
       totalElapsed: Date.now() - batchStart,
       passed,
       failed: results.length - passed,
       total: results.length,
-      results,
+      results: sanitizedResults,
     });
   } catch (err) {
-    console.error("[/run-tests]", err);
+    console.error("[/submit]", err);
     return res.status(500).json({ error: "Test execution failed" });
   }
 });
@@ -561,7 +767,7 @@ process.on("SIGTERM", () => shutdown("SIGTERM"));
 // ─────────────────────────────────────────────
 
 (async () => {
-  console.log(`[boot] starting ${POOL_SIZE} containers per language...`);
+  console.log(`[boot] starting ${POOL_SIZE} containers per language…`);
   await initPools();
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`[boot] judge running on port ${PORT}`);
