@@ -1,0 +1,170 @@
+/* ROOT STRUCTURE WITH GLOWING ACCENTS */
+.editor-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(255, 0, 85, 0.12),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at bottom left,
+      rgba(255, 0, 55, 0.08),
+      transparent 30%
+    ),
+    #050507;
+  overflow: hidden;
+}
+
+/* OUTSIDE FRAME CONTAINER */
+.editor-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 53, 94, 0.18);
+  box-shadow:
+    0 0 25px rgba(255, 53, 94, 0.08),
+    inset 0 0 40px rgba(255, 53, 94, 0.03);
+  background: #07070a;
+}
+
+/* TOOLBAR CONTROL LAYER */
+.editor-toolbar {
+  position: relative;
+  z-index: 3; /* Places interface above background graphics */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background-color: black;
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 53, 94, 0.15);
+}
+
+/* CONTROLS TEXT */
+.dropdown-container {
+  color: #f3f4f6;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 14px;
+}
+
+/* SELECTION MENU */
+.styled-select {
+  margin-left: 10px;
+  background: #111114;
+  color: #f3f4f6;
+  border: 1px solid rgba(255, 53, 94, 0.3);
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: "JetBrains Mono", monospace;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.styled-select:focus {
+  border-color: #ff355e;
+}
+
+/* COMPILER RUN ACTION */
+.run-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(180deg, var(--red), var(--red-dark));
+  color: #ffffff;
+  border: none;
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    transform 0.1s;
+}
+
+.run-button:hover {
+  background-color: #e0284e;
+}
+
+.run-button:active {
+  transform: scale(0.97);
+}
+
+/* INTERNAL EDITOR GRAPHICS FRAME */
+.monaco-container {
+  flex-grow: 1;
+  position: relative;
+  width: 100%;
+}
+
+/* BACKGROUND IMAGE OVERLAY EFFECT */
+.editor-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at center, rgba(255, 0, 64, 0.12)),
+    url("../assets/editor.png");
+  background-size: cover;
+  background-position: 60% 30%;
+  background-repeat: no-repeat;
+  opacity: 0.2;
+  filter: saturate(1.4) contrast(1.2);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* RECURRING GLOW ANIMATION */
+.editor-wrapper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at 70% 50%,
+    rgba(255, 0, 85, 0.1),
+    transparent 40%
+  );
+  animation: pulse 4s infinite ease-in-out;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+
+/* TRANSPARENCY MONACO RULES */
+.editor-wrapper .overflow-guard {
+  position: relative;
+  z-index: 2;
+}
+
+.editor-wrapper .monaco-editor,
+.editor-wrapper .monaco-editor-background,
+.editor-wrapper .margin,
+.editor-wrapper .inputarea.ime-input {
+  background: transparent !important;
+}
+
+.editor-wrapper .minimap,
+.editor-wrapper .minimap-shadow-visible,
+.editor-wrapper .minimap-slider {
+  background: transparent !important;
+}

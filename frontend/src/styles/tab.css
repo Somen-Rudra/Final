@@ -1,0 +1,129 @@
+/* ================================
+   FLEXLAYOUT CORE THEME
+   Crimson Cyber UI (variable-driven)
+================================ */
+
+/* ROOT LAYOUT */
+.flexlayout__layout {
+  background:
+    radial-gradient(circle at 20% 20%, var(--red-faint), transparent 40%),
+    radial-gradient(circle at 80% 40%, rgba(255, 0, 0, 0.05), transparent 50%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+}
+
+/* ================================
+   TABSET CONTAINER
+================================ */
+.flexlayout__tabset {
+  background: var(--surface);
+  border: 1px solid var(--red-border);
+  border-radius: var(--radius);
+  box-shadow: 0 0 18px var(--red-glow);
+  backdrop-filter: blur(10px);
+}
+
+/* TAB HEADER BAR */
+.flexlayout__tabset_header {
+  background: linear-gradient(
+    90deg,
+    rgba(10, 2, 2, 0.95),
+    rgba(165, 0, 20, 0.2)
+  );
+  border-bottom: 1px solid var(--red-border);
+}
+
+/* ================================
+   TAB BUTTONS
+================================ */
+.flexlayout__tab_button {
+  font-family: var(--mono);
+  color: white;
+  background: trea;
+  border: none;
+  padding: 8px 14px;
+  transition: all 0.2s ease;
+}
+
+/* hover */
+.flexlayout__tab_button:hover {
+  color: var(--red);
+  background: var(--red-faint);
+}
+
+/* active tab */
+.flexlayout__tab_button--selected {
+  color: var(--text);
+  background: linear-gradient(
+    180deg,
+    rgba(232, 0, 28, 0.22),
+    rgba(232, 0, 27, 0.384)
+  );
+  border-bottom: 2px solid var(--red);
+}
+
+/* ================================
+   TAB CONTENT AREA
+================================ */
+.flexlayout__tab {
+  background: rgba(10, 2, 2, 0.65);
+  border-top: 1px solid var(--red-border);
+}
+
+/* ================================
+   SPLITTERS
+================================ */
+.flexlayout__splitter {
+  background: transparent;
+  position: relative;
+}
+
+.flexlayout__splitter:hover {
+  background: var(--red-faint);
+  box-shadow: 0 0 10px var(--red-glow);
+}
+
+/* ================================
+   DROP / DRAG STATES
+================================ */
+.flexlayout__outline_rect {
+  border: 2px solid var(--red);
+  box-shadow: 0 0 10px var(--red-glow);
+}
+
+.flexlayout__drag_rect {
+  background: var(--red-faint);
+  border: 1px solid var(--red);
+}
+
+/* ================================
+   TABS CLOSE BUTTON (optional tweak)
+================================ */
+.flexlayout__tab_toolbar_button {
+
+  color: var(--muted);
+}
+
+.flexlayout__tab_toolbar_button:hover {
+  color: var(--red);
+}
+
+/* ================================
+   OPTIONAL HERO BACKGROUND SUPPORT
+================================ */
+.flexlayout__layout::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--hero-bg) center/cover no-repeat;
+  opacity: 0.06;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+
+
+.flexlayout__tabset_tabbar_inner,.flexlayout__tabset,.flexlayout__tabset-selected ,.flexlayout__tabset_tabbar_outer {
+    background:black;
+}

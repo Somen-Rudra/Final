@@ -1,0 +1,234 @@
+.tc-root {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #0a0202;
+  font-family: "Inter", sans-serif;
+  overflow: hidden;
+}
+
+.tc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(232, 0, 28, 0.15);
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.tc-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.tc-tab {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #8a8a8a;
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  font-family: "Inter", sans-serif;
+}
+
+.tc-tab:hover {
+  border-color: rgba(232, 0, 28, 0.3);
+  color: #f2f2f2;
+}
+
+.tc-tab.active {
+  border-color: rgba(232, 0, 28, 0.5);
+  color: #f2f2f2;
+  background: rgba(232, 0, 28, 0.08);
+}
+
+.tc-tab.tab-pass {
+  border-color: rgba(0, 255, 136, 0.3);
+}
+
+.tc-tab.tab-fail {
+  border-color: rgba(255, 61, 87, 0.3);
+}
+
+.tc-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-pass {
+  background: #00ff88;
+  box-shadow: 0 0 4px rgba(0, 255, 136, 0.6);
+}
+
+.dot-fail {
+  background: #ff3d57;
+  box-shadow: 0 0 4px rgba(255, 61, 87, 0.6);
+}
+
+.submit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #e8001c;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  transition: background 0.15s ease, opacity 0.15s ease;
+  flex-shrink: 0;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: #a50014;
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.submit-btn.submitting {
+  opacity: 0.75;
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.tc-body {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tc-empty {
+  padding: 32px;
+  text-align: center;
+  color: #8a8a8a;
+  font-size: 13px;
+}
+
+.tc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tc-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #8a8a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.tc-pre {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  padding: 10px 12px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  color: #f2f2f2;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+}
+
+.tc-pre.pre-pass {
+  border-color: rgba(0, 255, 136, 0.25);
+  background: rgba(0, 255, 136, 0.04);
+  color: #00ff88;
+}
+
+.tc-pre.pre-fail {
+  border-color: rgba(255, 61, 87, 0.25);
+  background: rgba(255, 61, 87, 0.04);
+  color: #ff3d57;
+}
+
+.tc-verdict {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.verdict-pass {
+  color: #00ff88;
+}
+
+.verdict-fail {
+  color: #ff3d57;
+}
+
+.verdict-time {
+  margin-left: auto;
+  font-size: 11px;
+  color: #8a8a8a;
+  font-weight: 400;
+}
+
+.tc-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.summary-pass {
+  font-size: 13px;
+  color: #f2f2f2;
+  font-weight: 500;
+}
+
+.summary-badge {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+.badge-ac {
+  background: rgba(0, 255, 136, 0.1);
+  color: #00ff88;
+  border: 1px solid rgba(0, 255, 136, 0.25);
+}
+
+.badge-wa {
+  background: rgba(255, 61, 87, 0.1);
+  color: #ff3d57;
+  border: 1px solid rgba(255, 61, 87, 0.25);
+}

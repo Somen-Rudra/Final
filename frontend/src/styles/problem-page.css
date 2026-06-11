@@ -1,0 +1,469 @@
+/* =====================================================
+   PROBLEM PAGE
+===================================================== */
+
+.problem-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  padding: 28px;
+
+  min-height: 100vh;
+
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(232, 0, 28, 0.08),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at bottom left,
+      rgba(232, 0, 28, 0.04),
+      transparent 30%
+    ),
+    #070101;
+}
+
+.problem-toolbar select,
+.rows-per-page select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  background: linear-gradient(
+    180deg,
+    rgba(18, 3, 5, 0.98),
+    rgba(8, 1, 2, 0.98)
+  );
+
+  color: rgba(255, 255, 255, 0.9);
+
+  border: 1px solid rgba(232, 0, 28, 0.18);
+
+  cursor: pointer;
+}
+.problem-toolbar select option,
+.rows-per-page select option {
+  background: #070101; /* Kali black */
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* =====================================================
+   TOOLBAR
+===================================================== */
+
+.problem-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  align-items: center;
+
+  padding: 20px;
+
+  border-radius: 18px;
+
+  border: 1px solid rgba(232, 0, 28, 0.15);
+
+  background: linear-gradient(
+    180deg,
+    rgba(18, 3, 5, 0.98),
+    rgba(8, 1, 2, 0.98)
+  );
+
+  backdrop-filter: blur(20px);
+
+  box-shadow:
+    inset 0 0 30px rgba(232, 0, 28, 0.03),
+    0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.problem-toolbar input,
+.problem-toolbar select {
+  height: 46px;
+
+  padding: 0 16px;
+
+  border-radius: 12px;
+
+  border: 1px solid rgba(232, 0, 28, 0.18);
+
+  background: rgba(255, 255, 255, 0.03);
+
+  color: rgba(255, 255, 255, 0.9);
+
+  font-size: 14px;
+
+  outline: none;
+
+  transition: all 0.25s ease;
+}
+
+.problem-toolbar input {
+  flex: 1;
+  min-width: 250px;
+}
+
+.problem-toolbar input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.problem-toolbar input:focus,
+.problem-toolbar select:focus {
+  border-color: rgba(232, 0, 28, 0.55);
+
+  box-shadow:
+    0 0 0 3px rgba(232, 0, 28, 0.12),
+    0 0 20px rgba(232, 0, 28, 0.15);
+}
+
+/* =====================================================
+   TABLE CONTAINER
+===================================================== */
+
+.problem-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.problem-table-wrapper {
+  overflow-x: auto;
+
+  border-radius: 22px;
+
+  border: 1px solid rgba(232, 0, 28, 0.12);
+
+  background: linear-gradient(
+    180deg,
+    rgba(15, 2, 4, 0.98),
+    rgba(7, 1, 1, 0.99)
+  );
+
+  box-shadow:
+    inset 0 0 40px rgba(232, 0, 28, 0.03),
+    0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+/* =====================================================
+   TABLE
+===================================================== */
+
+.problem-table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+.problem-table thead {
+  background: rgba(8, 8, 8, 0.651);
+}
+
+.problem-table th {
+  padding: 20px 24px;
+
+  text-align: left;
+
+  font-size: 13px;
+
+  font-weight: 700;
+
+  letter-spacing: 0.08em;
+
+  text-transform: uppercase;
+
+  color: rgba(255, 255, 255, 0.62);
+
+  border-bottom: 1px solid rgba(232, 0, 28, 0.12);
+}
+
+.problem-table td {
+  padding: 20px 24px;
+
+  color: rgba(255, 255, 255, 0.92);
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+
+  font-size: 14px;
+}
+
+.problem-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* =====================================================
+   ROW HOVER
+===================================================== */
+
+.problem-row {
+  cursor: pointer;
+
+  transition:
+    background 0.25s ease,
+    transform 0.25s ease;
+}
+
+.problem-row:hover {
+  background: rgba(232, 0, 28, 0.05);
+
+}
+
+.problem-title {
+  font-weight: 600;
+
+  color: rgba(255, 255, 255, 0.97);
+}
+
+/* =====================================================
+   DIFFICULTY PILLS
+===================================================== */
+
+.difficulty-pill {
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  min-width: 74px;
+
+  padding: 6px 14px;
+
+  border-radius: 999px;
+
+  font-size: 12px;
+
+  font-weight: 700;
+
+  text-transform: capitalize;
+}
+
+.difficulty-pill.easy {
+  color: #33e47a;
+
+  background: rgba(51, 228, 122, 0.1);
+
+  border: 1px solid rgba(51, 228, 122, 0.28);
+}
+
+.difficulty-pill.medium {
+  color: #ffbc47;
+
+  background: rgba(255, 188, 71, 0.1);
+
+  border: 1px solid rgba(255, 188, 71, 0.28);
+}
+
+.difficulty-pill.hard {
+  color: #ff5c70;
+
+  background: rgba(255, 92, 112, 0.1);
+
+  border: 1px solid rgba(255, 92, 112, 0.28);
+}
+
+/* =====================================================
+   TOPICS
+===================================================== */
+
+.topic-container {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  gap: 8px;
+}
+
+.topic-chip {
+  padding: 5px 12px;
+
+  border-radius: 10px;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  background: rgba(255, 255, 255, 0.04);
+
+  color: rgba(255, 255, 255, 0.78);
+
+  font-size: 12px;
+
+  white-space: nowrap;
+
+  transition: all 0.2s ease;
+}
+
+.topic-chip:hover {
+  border-color: rgba(232, 0, 28, 0.28);
+
+  background: rgba(232, 0, 28, 0.08);
+
+  color: white;
+}
+
+/* =====================================================
+   EMPTY STATE
+===================================================== */
+
+.empty-state {
+  padding: 48px !important;
+
+  text-align: center;
+
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* =====================================================
+   PAGINATION
+===================================================== */
+
+.pagination-container {
+  display: flex;
+
+  flex-wrap: wrap;
+
+  justify-content: space-between;
+
+  align-items: center;
+
+  gap: 16px;
+
+  padding: 20px;
+
+  border-radius: 18px;
+
+  border: 1px solid rgba(232, 0, 28, 0.12);
+
+  background: linear-gradient(
+    180deg,
+    rgba(14, 2, 3, 0.96),
+    rgba(7, 1, 1, 0.98)
+  );
+}
+
+.rows-per-page {
+  display: flex;
+
+  align-items: center;
+
+  gap: 12px;
+
+  color: rgba(255, 255, 255, 0.7);
+
+  font-size: 14px;
+}
+
+.rows-per-page select {
+  height: 40px;
+
+  padding: 0 12px;
+
+  border-radius: 10px;
+
+  border: 1px solid rgba(232, 0, 28, 0.15);
+
+  background: rgba(255, 255, 255, 0.03);
+
+  color: white;
+}
+
+.pagination-info {
+  color: rgba(255, 255, 255, 0.65);
+
+  font-size: 14px;
+}
+
+.pagination {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+}
+
+.pagination-btn {
+  width: 40px;
+
+  height: 40px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.03);
+
+  color: rgba(255, 255, 255, 0.82);
+
+  cursor: pointer;
+
+  transition: all 0.25s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: rgba(232, 0, 28, 0.08);
+
+  color: white;
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 0 18px rgba(232, 0, 28, 0.18);
+}
+
+.pagination-btn.active {
+  background: rgba(232, 0, 28, 0.16);
+
+  color: white;
+
+  border: 1px solid rgba(232, 0, 28, 0.35);
+
+  box-shadow:
+    0 0 20px rgba(232, 0, 28, 0.18),
+    inset 0 0 12px rgba(232, 0, 28, 0.08);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.35;
+
+  cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+  padding: 0 8px;
+
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 900px) {
+  .pagination-container {
+    flex-direction: column;
+
+    align-items: flex-start;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+  }
+
+  .problem-table th,
+  .problem-table td {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .problem-page {
+    padding: 16px;
+  }
+
+  .problem-toolbar {
+    padding: 16px;
+  }
+
+  .problem-toolbar input {
+    min-width: 100%;
+  }
+}
