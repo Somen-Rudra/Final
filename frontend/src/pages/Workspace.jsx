@@ -37,7 +37,9 @@ const json = {
       {
         type: "tabset",
         weight: 40,
-        children: [{ type: "tab", name: "Problem", component: "ProblemDescription" }],
+        children: [
+          { type: "tab", name: "Problem", component: "ProblemDescription" },
+        ],
       },
       {
         type: "row",
@@ -47,7 +49,9 @@ const json = {
           {
             type: "tabset",
             weight: 60,
-            children: [{ type: "tab", name: "Editor", component: "CodeEditor" }],
+            children: [
+              { type: "tab", name: "Editor", component: "CodeEditor" },
+            ],
           },
           {
             type: "tabset",
@@ -125,10 +129,9 @@ export default function Workspace() {
     }
   }
 
-  async function handleSubmit() {
+  async function handleSubmit(customCases = []) {
     const { code, lang } = codeRef.current;
 
-    // FIX: Guard against empty code as well
     if (!problem?.visibleTestCases?.length) return;
     if (!code.trim()) {
       setIsErrorOutput(true);
@@ -139,22 +142,35 @@ export default function Workspace() {
     setIsSubmitting(true);
     setSubmitResults(null);
 
-    const testCases = problem.visibleTestCases.map((tc) => ({
-      input: tc.input,
-      output: tc.output,
-    }));
+    // Merge DB visible cases + any custom cases passed up from TestCases
+    const testCases = [
+      ...problem.visibleTestCases.map((tc) => ({
+        input: tc.input,
+        output: tc.output,
+      })),
+      ...customCases,
+    ];
 
     try {
-      const data = await judgeAPI.post("/run-tests", { language: lang, code, testCases });
+      const data = await judgeAPI.post("/run-tests", {
+        language: lang,
+        code,
+        testCases,
+      });
+
+      // Log full raw JSON to browser console as requested
+      console.log("[Judge /run-tests response]", data);
+
       setSubmitResults(data.results || []);
     } catch (err) {
       setIsErrorOutput(true);
       setTerminalOutput(err?.message || "Submission failed");
+      console.error("[Judge error]", err);
     } finally {
       setIsSubmitting(false);
     }
   }
-
+  
   function clearOutput() {
     setTerminalOutput("");
     setIsErrorOutput(false);

@@ -232,3 +232,60 @@
   color: #ff3d57;
   border: 1px solid rgba(255, 61, 87, 0.25);
 }
+
+/* Editable textarea inside test cases */
+.tc-textarea {
+  width: 100%;
+  background: #0d0d0d;
+  color: #e0e0e0;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: monospace;
+  font-size: 13px;
+  resize: vertical;
+  box-sizing: border-box;
+  line-height: 1.5;
+}
+
+.tc-textarea:focus {
+  outline: none;
+  border-color: #e8001c44;
+}
+
+/* Custom case tab variant */
+.tc-tab-custom {
+  border-style: dashed !important;
+  gap: 6px;
+}
+
+.tc-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  font-size: 12px;
+  line-height: 1;
+  color: #888;
+  cursor: pointer;
+  margin-left: 2px;
+}
+
+.tc-tab-close:hover {
+  color: #e8001c;
+  background: rgba(232, 0, 28, 0.1);
+}
+
+.tc-tab-add {
+  border-style: solid;
+  color: #666;
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.tc-tab-add:hover {
+  color: #e8001c;
+  border-color: #e8001c44;
+}
