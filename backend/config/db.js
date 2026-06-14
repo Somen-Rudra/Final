@@ -5,7 +5,7 @@ import { createClient } from "redis";
 export const connectMongoDB = async () => {
   try {
     const conn = await mongoose.connect(ENV.URI, {
-      dbName: "auth",
+      dbName: "Test",
     });
 
     console.log(`MongoDB connected [${conn.connection.name}]`);

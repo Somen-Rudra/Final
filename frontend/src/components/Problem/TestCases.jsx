@@ -11,12 +11,20 @@ export default function TestCases({
 
   const cases = problem?.visibleTestCases || [];
 
+  // submitResults may include hidden test case results appended after visible ones.
+  // We only display results for the visible cases (by index), but we use the full
+  // array to compute the overall pass/fail summary.
+  const visibleResults = submitResults ? submitResults.slice(0, cases.length) : null;
+  const allPassed = submitResults?.every((r) => r.passed);
+  const passCount = submitResults?.filter((r) => r.passed).length ?? 0;
+  const totalCount = submitResults?.length ?? 0;
+
   return (
     <div className="tc-root">
       <div className="tc-header">
         <div className="tc-tabs">
           {cases.map((_, i) => {
-            const res = submitResults?.[i];
+            const res = visibleResults?.[i];
             const statusClass = !res
               ? ""
               : res.passed
@@ -58,6 +66,19 @@ export default function TestCases({
         </button>
       </div>
 
+      {/* Overall result banner — shown only after submission */}
+      {submitResults && (
+        <div className={`tc-result-banner ${allPassed ? "banner-pass" : "banner-fail"}`}>
+          <i
+            className={`ti ${allPassed ? "ti-circle-check" : "ti-circle-x"}`}
+            aria-hidden="true"
+          />
+          {allPassed
+            ? `All ${totalCount} test cases passed`
+            : `${passCount} / ${totalCount} test cases passed`}
+        </div>
+      )}
+
       {cases.length === 0 ? (
         <div className="tc-empty">No test cases available.</div>
       ) : (
@@ -69,9 +90,28 @@ export default function TestCases({
                 <pre className="tc-pre">{cases[activeTab].input}</pre>
               </div>
               <div className="tc-field">
-                <span className="tc-label">Expected Output</span>
+                <span className="tc-label">Expected output</span>
                 <pre className="tc-pre">{cases[activeTab].output}</pre>
               </div>
+
+              {/* Per-case actual output when a result exists */}
+              {visibleResults?.[activeTab] && (
+                <div className="tc-field">
+                  <span className="tc-label">Your output</span>
+                  <pre
+                    className={`tc-pre ${
+                      visibleResults[activeTab].passed ? "pre-pass" : "pre-fail"
+                    }`}
+                  >
+                    {visibleResults[activeTab].stdout ?? visibleResults[activeTab].output ?? ""}
+                  </pre>
+                  {visibleResults[activeTab].stderr && (
+                    <pre className="tc-pre pre-fail" style={{ marginTop: 4 }}>
+                      {visibleResults[activeTab].stderr}
+                    </pre>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>

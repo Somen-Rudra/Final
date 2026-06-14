@@ -11,8 +11,17 @@ import Output from "../components/Problem/Output";
 import ProblemDescription from "../components/Problem/ProblemDescription";
 import TestCases from "../components/Problem/TestCases";
 import { useParams } from "react-router-dom";
-import axios from "axios"
-import {API} from "../config/axios"
+import { API } from "../config/axios";
+
+// FIX: Use env variable instead of hardcoded localhost
+const judgeAPI = {
+  post: (path, body) =>
+    fetch(`${import.meta.env.VITE_JUDGE_URL}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then((r) => r.json()),
+};
 
 const json = {
   global: {
@@ -57,7 +66,7 @@ const json = {
 export default function Workspace() {
   const [model] = useState(() => Model.fromJson(json));
   const [loading, setLoading] = useState(false);
-  const [problem, setProblem] = useState({});
+  const [problem, setProblem] = useState(null); // FIX: null instead of {} so guards work correctly
 
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -73,10 +82,15 @@ export default function Workspace() {
     async function loadProblem() {
       try {
         setLoading(true);
+        // FIX: Reset state when navigating between problems
+        setProblem(null);
+        setSubmitResults(null);
+        setTerminalOutput("");
+        setIsErrorOutput(false);
         const res = await API.get(`/problemSet/${slug}`);
         setProblem(res.data.data);
       } catch (error) {
-        console.log(error.message);
+        console.error(error.message);
       } finally {
         setLoading(false);
       }
@@ -84,18 +98,14 @@ export default function Workspace() {
     loadProblem();
   }, [slug]);
 
-  // Called by CodeEditor on Run
   async function handleRun(code, lang) {
     codeRef.current = { code, lang };
     setIsRunning(true);
     setTerminalOutput("");
     setIsErrorOutput(false);
 
-    
-
     try {
-      const res = await axios.post("http://localhost:3000/run", { language: lang, code });
-      const data = res.data;
+      const data = await judgeAPI.post("/run", { language: lang, code });
 
       if (data.timedOut) {
         setIsErrorOutput(true);
@@ -109,40 +119,37 @@ export default function Workspace() {
       }
     } catch (err) {
       setIsErrorOutput(true);
-      setTerminalOutput(
-        err?.response?.data?.message || err.message || "An error occurred"
-      );
+      setTerminalOutput(err?.message || "An error occurred");
     } finally {
       setIsRunning(false);
     }
   }
 
-  // Called by TestCases on Submit
   async function handleSubmit() {
     const { code, lang } = codeRef.current;
 
+    // FIX: Guard against empty code as well
     if (!problem?.visibleTestCases?.length) return;
+    if (!code.trim()) {
+      setIsErrorOutput(true);
+      setTerminalOutput("Please write some code before submitting.");
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitResults(null);
 
-    const testCases = [
-      ...(problem.visibleTestCases || []),
-      ...(problem.hiddenTestCases || []),
-    ].map((tc) => ({ input: tc.input, output: tc.output }));
+    const testCases = problem.visibleTestCases.map((tc) => ({
+      input: tc.input,
+      output: tc.output,
+    }));
 
     try {
-      const res = await axios.post("http://localhost:3000/run-tests", {
-        language: lang,
-        code,
-        testCases,
-      });
-      setSubmitResults(res.data.results || []);
+      const data = await judgeAPI.post("/run-tests", { language: lang, code, testCases });
+      setSubmitResults(data.results || []);
     } catch (err) {
       setIsErrorOutput(true);
-      setTerminalOutput(
-        err?.response?.data?.message || err.message || "Submission failed"
-      );
+      setTerminalOutput(err?.message || "Submission failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -161,6 +168,7 @@ export default function Workspace() {
             problem={problem}
             onRun={handleRun}
             isRunning={isRunning}
+            // FIX: onCodeChange keeps codeRef in sync on every keystroke and lang switch
             onCodeChange={(code, lang) => {
               codeRef.current = { code, lang };
             }}
@@ -177,7 +185,8 @@ export default function Workspace() {
         );
 
       case "ProblemDescription":
-        return <ProblemDescription problem={problem} />;
+        // FIX: key prop forces fresh mount when navigating between problems
+        return <ProblemDescription key={slug} problem={problem} />;
 
       case "TestCases":
         return (

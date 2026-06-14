@@ -1,9 +1,33 @@
 import mongoose from "mongoose";
 
 /* =========================
-   Test Case Schema
+   Constants
 ========================= */
+
+const ALLOWED_LANGUAGES = ["c", "cpp", "js", "py", "java", "kotlin", "swift"];
+
+/* =========================
+   Reusable Schemas
+========================= */
+
 const testCaseSchema = new mongoose.Schema(
+  {
+    input: {
+      type: String,
+      required: true,
+      maxlength: 50000,
+    },
+
+    output: {
+      type: String,
+      required: true,
+      maxlength: 50000,
+    },
+  },
+  { _id: false },
+);
+
+const exampleSchema = new mongoose.Schema(
   {
     input: {
       type: String,
@@ -14,6 +38,42 @@ const testCaseSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
+    imageUrl: {
+      type: String,
+      default: null,
+    },
+
+    explanation: {
+      type: String,
+      required: true,
+    },
+  },
+  { _id: false },
+);
+
+const languageTemplateSchema = new mongoose.Schema(
+  {
+    header: {
+      type: String,
+      required: false,
+      default: "",
+    },
+
+    inputOutput: {
+      type: String,
+      required: true,
+    },
+
+    codeStub: {
+      type: String,
+      required: true,
+    },
+
+    driver: {
+      type: String,
+      required: true,
+    },
   },
   { _id: false },
 );
@@ -21,6 +81,7 @@ const testCaseSchema = new mongoose.Schema(
 /* =========================
    Problem Schema
 ========================= */
+
 const problemSchema = new mongoose.Schema(
   {
     problemNumber: {
@@ -46,7 +107,9 @@ const problemSchema = new mongoose.Schema(
 
     slug: {
       type: String,
+      required: true,
       unique: true,
+      index: true,
       lowercase: true,
       trim: true,
     },
@@ -58,12 +121,13 @@ const problemSchema = new mongoose.Schema(
       index: true,
     },
 
-    topics: {
-      type: [String],
-      required: true,
-      default: [],
-      index: true,
-    },
+    topics: [
+      {
+        type: String,
+        trim: true,
+        lowercase: true,
+      },
+    ],
 
     acceptanceRate: {
       totalSubs: {
@@ -79,167 +143,106 @@ const problemSchema = new mongoose.Schema(
       },
     },
 
-    examples: [
-      {
-        input: {
-          type: String,
-          required: true,
-        },
+    acceptancePercentage: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+      index: true,
+    },
 
-        output: {
-          type: String,
-          required: true,
-        },
-
-        imageUrl: {
-          type: String,
-          default: null,
-        },
-
-        explanation: {
-          type: String,
-          required: true,
-        },
-      },
-    ],
+    examples: {
+      type: [exampleSchema],
+      default: [],
+    },
 
     constraints: {
-      type: [String],
-      required: true,
+      type: [
+        {
+          type: String,
+          trim: true,
+        },
+      ],
       default: [],
     },
 
     followUps: {
-      type: [String],
-      required: true,
+      type: [
+        {
+          type: String,
+          trim: true,
+        },
+      ],
       default: [],
     },
 
     hints: {
-      type: [String],
-      required: true,
+      type: [
+        {
+          type: String,
+          trim: true,
+        },
+      ],
       default: [],
     },
 
     companies: {
-      type: [String],
-      required: true,
+      type: [
+        {
+          type: String,
+          trim: true,
+        },
+      ],
       default: [],
-      index: true,
     },
 
     similarQuestions: [
       {
-        title: {
-          type: String,
-          required: true,
-        },
-
-        slug: {
-          type: String,
-          required: true,
-        },
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Problem",
       },
     ],
 
-    header: {
-      c: {
-        type: String,
-        required: true,
-      },
+    languages: {
+      type: Map,
+      of: languageTemplateSchema,
+      required: true,
 
-      cpp: {
-        type: String,
-        required: true,
-      },
-    },
+      validate: {
+        validator(map) {
+          return [...map.keys()].every((lang) =>
+            ALLOWED_LANGUAGES.includes(lang),
+          );
+        },
 
-    inputOutput: {
-      c: {
-        type: String,
-        required: true,
-      },
-
-      cpp: {
-        type: String,
-        required: true,
-      },
-
-      js: {
-        type: String,
-        required: true,
-      },
-
-      py: {
-        type: String,
-        required: true,
-      },
-    },
-
-    codeStub: {
-      c: {
-        type: String,
-        required: true,
-      },
-
-      cpp: {
-        type: String,
-        required: true,
-      },
-
-      js: {
-        type: String,
-        required: true,
-      },
-
-      py: {
-        type: String,
-        required: true,
-      },
-    },
-
-    driver: {
-      c: {
-        type: String,
-        required: true,
-      },
-
-      cpp: {
-        type: String,
-        required: true,
-      },
-
-      js: {
-        type: String,
-        required: true,
-      },
-
-      py: {
-        type: String,
-        required: true,
+        message: "Unsupported language found.",
       },
     },
 
     timeLimit: {
       type: Number,
       required: true,
-      default: 1000,
-      min: 100,
+      default: 10000, // milliseconds
+      min: 1000,
     },
 
     memoryLimit: {
       type: Number,
       required: true,
-      default: 256,
-      min: 16,
+      default: 128, // MB
+      min: 64,
     },
 
     visibleTestCases: {
       type: [testCaseSchema],
       required: true,
+
       validate: {
-        validator: (arr) => arr.length > 0,
-        message: "At least one visible test case is required",
+        validator(arr) {
+          return arr.length >= 1 && arr.length <= 20;
+        },
+
+        message: "Visible test cases must contain between 1 and 20 cases.",
       },
     },
 
@@ -247,24 +250,69 @@ const problemSchema = new mongoose.Schema(
       type: [testCaseSchema],
       required: true,
       select: false,
+
       validate: {
-        validator: (arr) => arr.length > 0,
-        message: "At least one hidden test case is required",
+        validator(arr) {
+          return arr.length >= 1 && arr.length <= 100;
+        },
+
+        message: "Hidden test cases must contain between 1 and 100 cases.",
       },
+    },
+
+    isPublished: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+
+    isPremium: {
+      type: Boolean,
+      default: false,
+    },
+
+    isFeatured: {
+      type: Boolean,
+      default: false,
     },
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+
+    toJSON: {
+      virtuals: true,
+    },
+
+    toObject: {
+      virtuals: true,
+    },
   },
 );
 
 /* =========================
-   Slug Generator
+   Indexes
 ========================= */
-problemSchema.pre("save", async function (next) {
-  if (!this.isModified("title")) return next();
+
+problemSchema.index({
+  difficulty: 1,
+  topics: 1,
+});
+
+problemSchema.index({
+  title: "text",
+});
+
+problemSchema.index({
+  companies: 1,
+});
+
+/* =========================
+   Hooks
+========================= */
+
+// Slug generation
+problemSchema.pre("validate", async function () {
+  if (!this.isModified("title")) return;
 
   const baseSlug = this.title
     .toLowerCase()
@@ -286,13 +334,38 @@ problemSchema.pre("save", async function (next) {
   }
 
   this.slug = slug;
-
-  next();
 });
+
+problemSchema.pre("save", async function () {
+  if (this.topics?.length) {
+    this.topics = [
+      ...new Set(this.topics.map((topic) => topic.trim().toLowerCase())),
+    ];
+  }
+
+  if (this.companies?.length) {
+    this.companies = [
+      ...new Set(this.companies.map((company) => company.trim())),
+    ];
+  }
+
+  const { totalSubs, acceptedSubs } = this.acceptanceRate;
+  this.acceptancePercentage =
+    totalSubs === 0 ? 0 : Number(((acceptedSubs / totalSubs) * 100).toFixed(2));
+});
+
+/* =========================
+   Statics
+========================= */
+
+problemSchema.statics.findForJudge = function (id) {
+  return this.findById(id).select("+hiddenTestCases");
+};
 
 /* =========================
    Model
 ========================= */
+
 const Problem =
   mongoose.models.Problem || mongoose.model("Problem", problemSchema);
 

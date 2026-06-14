@@ -17,20 +17,50 @@ export default function CodeEditor({ problem, onRun, isRunning }) {
     monacoRef.current = monaco;
   }
 
+  // Filter to only languages this problem supports
+  const availableLanguages = Object.entries(LANGUAGES).filter(
+    ([_, config]) => problem?.languages?.[config.dbKey],
+  );
+
+  // Set default lang to first available when problem loads
   useEffect(() => {
-    if (!problem?.codeStub) return;
+    if (!problem?.languages) return;
+    const firstAvailable = Object.entries(LANGUAGES).find(
+      ([_, config]) => problem.languages[config.dbKey],
+    );
+    if (firstAvailable) setLangKey(firstAvailable[0]);
+  }, [problem]);
+
+  // Populate editor codes from problem.languages
+  useEffect(() => {
+    if (!problem?.languages) return;
+
     setEditorCodes((prev) => {
       if (Object.keys(prev).length > 0) return prev;
+
       const codes = {};
       Object.entries(LANGUAGES).forEach(([lang, config]) => {
-        codes[lang] = problem.codeStub[config.dbKey] || "";
+        const langData = problem.languages[config.dbKey];
+        codes[lang] = langData?.codeStub || "";
       });
+
       return codes;
     });
   }, [problem]);
 
   function handleRun() {
     if (onRun) onRun(editorCodes[langKey] || "", langKey);
+  }
+
+  // Guard: don't render editor until we have codes and a valid langKey
+  if (!problem?.languages || editorCodes[langKey] === undefined) {
+    return (
+      <div className="editor-page">
+        <div className="editor-wrapper">
+          <p style={{ color: "#888", padding: "1rem" }}>Loading editor…</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -45,7 +75,7 @@ export default function CodeEditor({ problem, onRun, isRunning }) {
               onChange={(e) => setLangKey(e.target.value)}
               className="styled-select"
             >
-              {Object.entries(LANGUAGES).map(([key, lang]) => (
+              {availableLanguages.map(([key, lang]) => (
                 <option key={key} value={key}>
                   {lang.name}
                 </option>
@@ -86,7 +116,7 @@ export default function CodeEditor({ problem, onRun, isRunning }) {
           <Editor
             height="100%"
             key={langKey}
-            language={LANGUAGES[langKey].monacoLang}
+            language={LANGUAGES[langKey]?.monacoLang}
             value={editorCodes[langKey] || ""}
             onChange={(value) => {
               setEditorCodes((prev) => ({ ...prev, [langKey]: value || "" }));

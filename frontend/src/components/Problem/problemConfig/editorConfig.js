@@ -19,6 +19,21 @@ export const LANGUAGES = {
     monacoLang: "python",
     dbKey: "py",
   },
+  java: {
+    name: "Java",
+    monacoLang: "java",
+    dbKey: "java",
+  },
+  kotlin: {
+    name: "Kotlin",
+    monacoLang: "kotlin",
+    dbKey: "kotlin",
+  },
+  swift: {
+    name: "Swift",
+    monacoLang: "swift",
+    dbKey: "swift",
+  },
 };
 
 export const MONACO_OPTIONS = {

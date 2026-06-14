@@ -17,28 +17,16 @@ import "../../styles/problem-description.css";
 /* =========================================
    ACCORDION
 ========================================= */
-const Accordion = ({
-  title,
-  sectionKey,
-  openSections,
-  toggleSection,
-  children,
-  icon,
-}) => {
+const Accordion = ({ title, sectionKey, openSections, toggleSection, children, icon }) => {
   return (
     <div className="accordion">
-      <button
-        className="accordion-header"
-        onClick={() => toggleSection(sectionKey)}
-      >
+      <button className="accordion-header" onClick={() => toggleSection(sectionKey)}>
         <div className="accordion-left">
           {icon}
           <span>{title}</span>
         </div>
-
         {openSections[sectionKey] ? <FaChevronUp /> : <FaChevronDown />}
       </button>
-
       {openSections[sectionKey] && (
         <div className="accordion-content">{children}</div>
       )}
@@ -50,45 +38,33 @@ const Accordion = ({
    VARIABLE HIGHLIGHTER
 ========================================= */
 const renderHighlightedText = (text) => {
-  const parts = text.split(/(\{\{.*?\}\})/g);
+  // FIX: guard against non-string values
+  if (!text || typeof text !== "string") return null;
 
+  const parts = text.split(/(`[^`]+`)/g);
   return parts.map((part, index) => {
-    if (part.startsWith("{{") && part.endsWith("}}")) {
-      const variable = part.replace(/\{\{|\}\}/g, "").trim();
-
+    if (part.startsWith("`") && part.endsWith("`")) {
       return (
         <span key={index} className="inline-variable">
-          {variable}
+          {part.slice(1, -1)}
         </span>
       );
     }
-
     return <React.Fragment key={index}>{part}</React.Fragment>;
   });
 };
 
 /* =========================================
-  NUMBER FORMATTING
+   NUMBER FORMATTING
 ========================================= */
 const formatNumber = (num) => {
-  if (num >= 1_000_000_000) {
-    return (num / 1_000_000_000).toFixed(1) + "B";
-  }
-
-  if (num >= 1_000_000) {
-    return (num / 1_000_000).toFixed(1) + "M";
-  }
-
-  if (num >= 1_000) {
-    return (num / 1_000).toFixed(1) + "K";
-  }
-
+  if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1) + "B";
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + "M";
+  if (num >= 1_000) return (num / 1_000).toFixed(1) + "K";
   return String(num);
 };
 
-const ParsedText = ({ text }) => {
-  return <>{renderHighlightedText(text)}</>;
-};
+const ParsedText = ({ text }) => <>{renderHighlightedText(text)}</>;
 
 /* =========================================
    COPY FUNCTION
@@ -104,40 +80,24 @@ const copyText = async (text) => {
 /* =========================================
    EXAMPLE CARD
 ========================================= */
-const ExampleCard = ({ title, input, output, explanation }) => {
-  return (
-    <div className="example-card">
-      <div className="example-top">
-        <h3>{title}</h3>
-
-        <button
-          className="copy-btn"
-          onClick={() =>
-            copyText(
-              `Input: ${input}\nOutput: ${output}\nExplanation: ${explanation}`,
-            )
-          }
-        >
-          <FaCopy />
-        </button>
-      </div>
-
-      <p>
-        <strong>Input:</strong> {input}
-      </p>
-
-      <p>
-        <strong>Output:</strong> {output}
-      </p>
-
-      {explanation && (
-        <p>
-          <strong>Explanation:</strong> {explanation}
-        </p>
-      )}
+const ExampleCard = ({ title, input, output, explanation }) => (
+  <div className="example-card">
+    <div className="example-top">
+      <h3>{title}</h3>
+      <button
+        className="copy-btn"
+        onClick={() =>
+          copyText(`Input: ${input}\nOutput: ${output}\nExplanation: ${explanation}`)
+        }
+      >
+        <FaCopy />
+      </button>
     </div>
-  );
-};
+    <p><strong>Input:</strong> {input}</p>
+    <p><strong>Output:</strong> {output}</p>
+    {explanation && <p><strong>Explanation:</strong> {explanation}</p>}
+  </div>
+);
 
 /* =========================================
    COMPANY DATA
@@ -147,8 +107,21 @@ const companyIcons = {
   Amazon: <FaAmazon />,
   Apple: <FaApple />,
   Meta: <FaFacebook />,
+  Facebook: <FaFacebook />,
   Microsoft: <FaMicrosoft />,
 };
+
+/* =========================================
+   LOADING SKELETON
+========================================= */
+const LoadingSkeleton = () => (
+  <div className="problem-container" style={{ padding: "2rem", color: "#666" }}>
+    <div style={{ marginBottom: "1rem", height: 28, background: "#1a1a1a", borderRadius: 4, width: "60%" }} />
+    <div style={{ height: 16, background: "#1a1a1a", borderRadius: 4, width: "100%", marginBottom: 8 }} />
+    <div style={{ height: 16, background: "#1a1a1a", borderRadius: 4, width: "80%", marginBottom: 8 }} />
+    <div style={{ height: 16, background: "#1a1a1a", borderRadius: 4, width: "90%" }} />
+  </div>
+);
 
 /* =========================================
    MAIN COMPONENT
@@ -163,14 +136,15 @@ const ProblemDescription = ({ problem }) => {
     similar: false,
   });
 
-  const acceptanceRate = (problem?.acceptanceRate.acceptedSubs/problem?.acceptanceRate.totalSubs * 100).toFixed(2);
+  const toggleSection = (key) =>
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  const toggleSection = (key) => {
-    setOpenSections((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
+  // FIX: Guard — problem is null or not yet populated
+  if (!problem?.title) return <LoadingSkeleton />;
+
+  const { totalSubs = 0, acceptedSubs = 0 } = problem?.acceptanceRate ?? {};
+  const acceptanceRate =
+    totalSubs === 0 ? "0.00" : ((acceptedSubs / totalSubs) * 100).toFixed(2);
 
   return (
     <div className="problem-container">
@@ -178,42 +152,34 @@ const ProblemDescription = ({ problem }) => {
       <div className="problem-header">
         <div className="title-row">
           <h1>
-            {problem.problemNumber}.{problem.title}
+            {problem.problemNumber}. {problem.title}
           </h1>
-
-          <div className={`difficulty ${problem.difficulty}`}>{problem.difficulty}</div>
+          <div className={`difficulty ${problem.difficulty}`}>
+            {problem.difficulty}
+          </div>
         </div>
 
         {/* STATS */}
         <div className="stats-row">
           <div className="stat-card">
             <span className="stat-label">Acceptance</span>
-
             <span className="stat-value">{acceptanceRate}%</span>
           </div>
-
           <div className="stat-card">
             <span className="stat-label">Accepted</span>
-
-            <span className="stat-value">
-              {formatNumber(problem.acceptanceRate.acceptedSubs)}
-            </span>
+            <span className="stat-value">{formatNumber(acceptedSubs)}</span>
           </div>
-
           <div className="stat-card">
             <span className="stat-label">Submissions</span>
-
-            <span className="stat-value">
-              {formatNumber(problem.acceptanceRate.totalSubs)}
-            </span>
+            <span className="stat-value">{formatNumber(totalSubs)}</span>
           </div>
         </div>
       </div>
 
       {/* DESCRIPTION */}
+      {/* FIX: optional chaining on .split() so it can't crash on undefined */}
       <div className="problem-section">
-        {" "}
-        {problem.description.split("\n").map((line, index) => (
+        {problem.description?.split("\n").map((line, index) => (
           <p key={index}>{renderHighlightedText(line)}</p>
         ))}
       </div>
@@ -253,94 +219,96 @@ const ProblemDescription = ({ problem }) => {
         >
           <ul className="bullet-list">
             {problem.constraints?.map((constraint, index) => (
-              <li key={index}>
-                <ParsedText text={constraint} />
-              </li>
+              <li key={index}><ParsedText text={constraint} /></li>
             ))}
           </ul>
         </Accordion>
 
         {/* FOLLOW UP */}
-        <Accordion
-          title="Follow-up"
-          sectionKey="followup"
-          openSections={openSections}
-          toggleSection={toggleSection}
-          icon={<FaLightbulb />}
-        >
-          <ul className="bullet-list">
-            {problem.followUps?.map((followUp, index) => (
-              <li key={index}>
-                <ParsedText text={followUp} />
-              </li>
-            ))}
-          </ul>
-        </Accordion>
+        {problem.followUps?.length > 0 && (
+          <Accordion
+            title="Follow-up"
+            sectionKey="followup"
+            openSections={openSections}
+            toggleSection={toggleSection}
+            icon={<FaLightbulb />}
+          >
+            <ul className="bullet-list">
+              {problem.followUps.map((followUp, index) => (
+                <li key={index}><ParsedText text={followUp} /></li>
+              ))}
+            </ul>
+          </Accordion>
+        )}
 
         {/* HINTS */}
-        <Accordion
-          title="Hints"
-          sectionKey="hints"
-          openSections={openSections}
-          toggleSection={toggleSection}
-          icon={<FaLightbulb />}
-        >
-          <div className="hint-stack">
-            {problem.hints?.map((hint, index) => (
-              <Accordion
-                key={index}
-                title={`Hint ${index + 1}`}
-                sectionKey={`hint${index}`}
-                openSections={openSections}
-                toggleSection={toggleSection}
-                icon={<FaLightbulb />}
-              >
-                <p className="hint-text">
-                  <ParsedText text={hint} />
-                </p>
-              </Accordion>
-            ))}
-          </div>
-        </Accordion>
+        {problem.hints?.length > 0 && (
+          <Accordion
+            title="Hints"
+            sectionKey="hints"
+            openSections={openSections}
+            toggleSection={toggleSection}
+            icon={<FaLightbulb />}
+          >
+            <div className="hint-stack">
+              {problem.hints.map((hint, index) => (
+                <Accordion
+                  key={index}
+                  title={`Hint ${index + 1}`}
+                  sectionKey={`hint${index}`}
+                  openSections={openSections}
+                  toggleSection={toggleSection}
+                  icon={<FaLightbulb />}
+                >
+                  <p className="hint-text"><ParsedText text={hint} /></p>
+                </Accordion>
+              ))}
+            </div>
+          </Accordion>
+        )}
 
         {/* COMPANIES */}
-        <Accordion
-          title="Companies"
-          sectionKey="companies"
-          openSections={openSections}
-          toggleSection={toggleSection}
-          icon={<FaLightbulb />}
-        >
-          <div className="companies-grid">
-            {problem.companies?.map((company) => (
-              <div key={company} className="company-card">
-                <div className="company-fallback-icon">
-                  {companyIcons[company] || <FaBuilding />}
+        {problem.companies?.length > 0 && (
+          <Accordion
+            title="Companies"
+            sectionKey="companies"
+            openSections={openSections}
+            toggleSection={toggleSection}
+            icon={<FaLightbulb />}
+          >
+            <div className="companies-grid">
+              {problem.companies.map((company) => (
+                <div key={company} className="company-card">
+                  <div className="company-fallback-icon">
+                    {companyIcons[company] || <FaBuilding />}
+                  </div>
+                  <span>{company}</span>
                 </div>
-              </div>
-            ))}
-          </div>
-        </Accordion>
+              ))}
+            </div>
+          </Accordion>
+        )}
 
-        {/* SIMILAR */}
         {/* SIMILAR QUESTIONS */}
-        <Accordion
-          title="Similar Questions"
-          sectionKey="similar"
-          openSections={openSections}
-          toggleSection={toggleSection}
-          icon={<FaLightbulb />}
-        >
-          <ul className="bullet-list similar-list">
-            {problem.similarQuestions?.map((question) => (
-              <li key={question.slug}>
-                <Link to={`/problemSet/${question.slug}`}>
-                  <span>{question.title}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Accordion>
+        {problem.similarQuestions?.length > 0 && (
+          <Accordion
+            title="Similar questions"
+            sectionKey="similar"
+            openSections={openSections}
+            toggleSection={toggleSection}
+            icon={<FaLightbulb />}
+          >
+            <ul className="bullet-list similar-list">
+              {problem.similarQuestions.map((question) => (
+                <li key={question.slug}>
+                  <Link to={`/problemSet/${question.slug}`}>
+                    <span>{question.title}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Accordion>
+        )}
       </div>
     </div>
   );
