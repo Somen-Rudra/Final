@@ -1,324 +1,233 @@
-import React, { useState } from "react";
-import {
-  FaChevronDown,
-  FaChevronUp,
-  FaLightbulb,
-  FaCopy,
-  FaGoogle,
-  FaAmazon,
-  FaApple,
-  FaFacebook,
-  FaMicrosoft,
-  FaBuilding,
-} from "react-icons/fa";
 import { Link } from "react-router-dom";
-import "../../styles/problem-description.css";
+import "../../styles/problem-page.css";
 
-/* =========================================
-   ACCORDION
-========================================= */
-const Accordion = ({
-  title,
-  sectionKey,
-  openSections,
-  toggleSection,
-  children,
-  icon,
-}) => {
+function DifficultyBadge({ difficulty }) {
   return (
-    <div className="accordion">
-      <button
-        className="accordion-header"
-        onClick={() => toggleSection(sectionKey)}
-      >
-        <div className="accordion-left">
-          {icon}
-          <span>{title}</span>
-        </div>
-
-        {openSections[sectionKey] ? <FaChevronUp /> : <FaChevronDown />}
-      </button>
-
-      {openSections[sectionKey] && (
-        <div className="accordion-content">{children}</div>
-      )}
-    </div>
+    <span
+      className={`ps-badge ps-badge--${difficulty?.toLowerCase()}`}
+    >
+      {difficulty}
+    </span>
   );
-};
+}
 
-/* =========================================
-   VARIABLE HIGHLIGHTER
-========================================= */
-const renderHighlightedText = (text) => {
-  const parts = text.split(/(\{\{.*?\}\})/g);
-
-  return parts.map((part, index) => {
-    if (part.startsWith("{{") && part.endsWith("}}")) {
-      const variable = part.replace(/\{\{|\}\}/g, "").trim();
-      return (
-        <span key={index} className="inline-variable">
-          {variable}
-        </span>
-      );
-    }
-    return <React.Fragment key={index}>{part}</React.Fragment>;
-  });
-};
-
-/* =========================================
-   NUMBER FORMATTING
-========================================= */
-const formatNumber = (num) => {
-  if (num >= 1_000_000_000) return (num / 1_000_000_000).toFixed(1) + "B";
-  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + "M";
-  if (num >= 1_000) return (num / 1_000).toFixed(1) + "K";
-  return String(num);
-};
-
-const ParsedText = ({ text }) => <>{renderHighlightedText(text)}</>;
-
-/* =========================================
-   COPY FUNCTION
-========================================= */
-const copyText = async (text) => {
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch (err) {
-    console.error("Copy failed", err);
-  }
-};
-
-/* =========================================
-   EXAMPLE CARD
-========================================= */
-const ExampleCard = ({ title, input, output, explanation }) => {
+function SkeletonRow() {
   return (
-    <div className="example-card">
-      <div className="example-top">
-        <h3>{title}</h3>
-        <button
-          className="copy-btn"
-          onClick={() =>
-            copyText(
-              `Input: ${input}\nOutput: ${output}\nExplanation: ${explanation}`,
+    <tr className="ps-row ps-row--skeleton">
+      <td>
+        <div className="ps-skel ps-skel--sm" />
+      </td>
+
+      <td>
+        <div className="ps-skel ps-skel--lg" />
+      </td>
+
+      <td>
+        <div className="ps-skel ps-skel--md" />
+      </td>
+
+      <td>
+        <div className="ps-skel ps-skel--lg" />
+      </td>
+
+      <td>
+        <div className="ps-skel ps-skel--sm" />
+      </td>
+    </tr>
+  );
+}
+
+export default function ProblemList({
+  problems,
+  loading,
+}) {
+  return (
+    <div className="ps-table-wrap">
+
+      <table className="ps-table">
+
+        <thead>
+          <tr>
+            <th className="ps-th ps-th--num">
+              #
+            </th>
+
+            <th className="ps-th ps-th--title">
+              Title
+            </th>
+
+            <th className="ps-th ps-th--diff">
+              Difficulty
+            </th>
+
+            <th className="ps-th ps-th--topics">
+              Topics
+            </th>
+
+            <th className="ps-th ps-th--acc">
+              Acceptance
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          {loading ? (
+            Array.from({ length: 10 }).map(
+              (_, index) => (
+                <SkeletonRow
+                  key={index}
+                />
+              )
             )
-          }
-        >
-          <FaCopy />
-        </button>
-      </div>
+          ) : problems.length === 0 ? (
 
-      <p>
-        <strong>Input:</strong> {input}
-      </p>
-      <p>
-        <strong>Output:</strong> {output}
-      </p>
-      {explanation && (
-        <p>
-          <strong>Explanation:</strong> {explanation}
-        </p>
-      )}
-    </div>
-  );
-};
-
-/* =========================================
-   COMPANY DATA
-========================================= */
-const companyIcons = {
-  Google: <FaGoogle />,
-  Amazon: <FaAmazon />,
-  Apple: <FaApple />,
-  Meta: <FaFacebook />,
-  Microsoft: <FaMicrosoft />,
-};
-
-/* =========================================
-   MAIN COMPONENT
-========================================= */
-const ProblemDescription = ({ problem }) => {
-  const [openSections, setOpenSections] = useState({
-    examples: true,
-    constraints: true,
-    followup: true,
-    hints: false,
-    companies: false,
-    similar: false,
-  });
-
-  const toggleSection = (key) => {
-    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  // Guard against zero totalSubs to avoid NaN
-  const { totalSubs = 0, acceptedSubs = 0 } = problem?.acceptanceRate ?? {};
-  const acceptanceRate =
-    totalSubs === 0 ? "0.00" : ((acceptedSubs / totalSubs) * 100).toFixed(2);
-
-  return (
-    <div className="problem-container">
-      {/* HEADER */}
-      <div className="problem-header">
-        <div className="title-row">
-          <h1>
-            {problem.problemNumber}. {problem.title}
-          </h1>
-          <div className={`difficulty ${problem.difficulty}`}>
-            {problem.difficulty}
-          </div>
-        </div>
-
-        {/* STATS */}
-        <div className="stats-row">
-          <div className="stat-card">
-            <span className="stat-label">Acceptance</span>
-            <span className="stat-value">{acceptanceRate}%</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Accepted</span>
-            <span className="stat-value">{formatNumber(acceptedSubs)}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Submissions</span>
-            <span className="stat-value">{formatNumber(totalSubs)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* DESCRIPTION */}
-      <div className="problem-section">
-        {problem.description.split("\n").map((line, index) => (
-          <p key={index}>{renderHighlightedText(line)}</p>
-        ))}
-      </div>
-
-      {/* ACCORDIONS */}
-      <div className="problem-section">
-        {/* EXAMPLES */}
-        <Accordion
-          title="Examples"
-          sectionKey="examples"
-          openSections={openSections}
-          toggleSection={toggleSection}
-          icon={<FaLightbulb />}
-        >
-          {problem.examples?.length ? (
-            problem.examples.map((example, index) => (
-              <ExampleCard
-                key={index}
-                title={`Example ${index + 1}`}
-                input={example.input}
-                output={example.output}
-                explanation={example.explanation}
-              />
-            ))
-          ) : (
-            <p>No examples available.</p>
-          )}
-        </Accordion>
-
-        {/* CONSTRAINTS */}
-        <Accordion
-          title="Constraints"
-          sectionKey="constraints"
-          openSections={openSections}
-          toggleSection={toggleSection}
-          icon={<FaLightbulb />}
-        >
-          <ul className="bullet-list">
-            {problem.constraints?.map((constraint, index) => (
-              <li key={index}>
-                <ParsedText text={constraint} />
-              </li>
-            ))}
-          </ul>
-        </Accordion>
-
-        {/* FOLLOW UP */}
-        <Accordion
-          title="Follow-up"
-          sectionKey="followup"
-          openSections={openSections}
-          toggleSection={toggleSection}
-          icon={<FaLightbulb />}
-        >
-          <ul className="bullet-list">
-            {problem.followUps?.map((followUp, index) => (
-              <li key={index}>
-                <ParsedText text={followUp} />
-              </li>
-            ))}
-          </ul>
-        </Accordion>
-
-        {/* HINTS */}
-        <Accordion
-          title="Hints"
-          sectionKey="hints"
-          openSections={openSections}
-          toggleSection={toggleSection}
-          icon={<FaLightbulb />}
-        >
-          <div className="hint-stack">
-            {problem.hints?.map((hint, index) => (
-              <Accordion
-                key={index}
-                title={`Hint ${index + 1}`}
-                sectionKey={`hint${index}`}
-                openSections={openSections}
-                toggleSection={toggleSection}
-                icon={<FaLightbulb />}
+            <tr>
+              <td
+                colSpan={5}
+                className="ps-empty"
               >
-                <p className="hint-text">
-                  <ParsedText text={hint} />
-                </p>
-              </Accordion>
-            ))}
-          </div>
-        </Accordion>
+                <div className="ps-empty-inner">
 
-        {/* COMPANIES */}
-        <Accordion
-          title="Companies"
-          sectionKey="companies"
-          openSections={openSections}
-          toggleSection={toggleSection}
-          icon={<FaLightbulb />}
-        >
-          <div className="companies-grid">
-            {problem.companies?.map((company) => (
-              <div key={company} className="company-card">
-                <div className="company-fallback-icon">
-                  {companyIcons[company] || <FaBuilding />}
+                  <svg
+                    width="36"
+                    height="36"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r="8"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                    />
+
+                    <path
+                      d="M21 21L16.65 16.65"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+
+                  <h3>
+                    No problems found
+                  </h3>
+
+                  <p>
+                    Try changing your
+                    filters or search
+                    query.
+                  </p>
+
                 </div>
-                <span>{company}</span>
-              </div>
-            ))}
-          </div>
-        </Accordion>
+              </td>
+            </tr>
 
-        {/* SIMILAR QUESTIONS */}
-        <Accordion
-          title="Similar questions"
-          sectionKey="similar"
-          openSections={openSections}
-          toggleSection={toggleSection}
-          icon={<FaLightbulb />}
-        >
-          <ul className="bullet-list similar-list">
-            {problem.similarQuestions?.map((question) => (
-              <li key={question.slug}>
-                <Link to={`/problemSet/${question.slug}`}>
-                  <span>{question.title}</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </Accordion>
-      </div>
+          ) : (
+
+            problems.map((problem) => (
+              <tr
+                key={problem.slug}
+                className="ps-row"
+              >
+
+                <td className="ps-td ps-td--num">
+                  {
+                    problem.problemNumber
+                  }
+                </td>
+
+                <td className="ps-td ps-td--title">
+
+                  <Link
+                    to={`/problemSet/${problem.slug}`}
+                    className="ps-problem-link"
+                  >
+                    {problem.title}
+
+                    {problem.isPremium && (
+                      <span
+                        className="ps-premium"
+                        title="Premium"
+                      >
+                        ★
+                      </span>
+                    )}
+
+                    {problem.isFeatured && (
+                      <span
+                        className="ps-featured"
+                        title="Featured"
+                      >
+                        🔥
+                      </span>
+                    )}
+                  </Link>
+
+                </td>
+
+                <td className="ps-td ps-td--diff">
+                  <DifficultyBadge
+                    difficulty={
+                      problem.difficulty
+                    }
+                  />
+                </td>
+
+                <td className="ps-td ps-td--topics">
+
+                  <div className="ps-topics">
+
+                    {problem.topics
+                      ?.slice(0, 2)
+                      .map((topic) => (
+                        <span
+                          key={topic}
+                          className="ps-topic-chip"
+                        >
+                          {topic}
+                        </span>
+                      ))}
+
+                    {problem.topics
+                      ?.length > 2 && (
+                      <span className="ps-topic-chip ps-topic-chip--more">
+                        +
+                        {problem.topics
+                          .length - 2}
+                      </span>
+                    )}
+
+                  </div>
+
+                </td>
+
+                <td className="ps-td ps-td--acc">
+
+                  <span className="ps-acceptance">
+
+                    {problem.acceptancePercentage !=
+                    null
+                      ? `${problem.acceptancePercentage.toFixed(
+                          1
+                        )}%`
+                      : "—"}
+
+                  </span>
+
+                </td>
+
+              </tr>
+            ))
+
+          )}
+
+        </tbody>
+
+      </table>
+
     </div>
   );
-};
-
-export default ProblemDescription;
+}

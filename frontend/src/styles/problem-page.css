@@ -1,469 +1,529 @@
-/* =====================================================
-   PROBLEM PAGE
-===================================================== */
+/* =========================
+   PAGE
+========================= */
 
-.problem-page {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-
-  padding: 28px;
-
-  min-height: 100vh;
-
-  background:
-    radial-gradient(
-      circle at top right,
-      rgba(232, 0, 28, 0.08),
-      transparent 35%
-    ),
-    radial-gradient(
-      circle at bottom left,
-      rgba(232, 0, 28, 0.04),
-      transparent 30%
-    ),
-    #070101;
+.ps-page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+  color: #f3f4f6;
 }
 
-.problem-toolbar select,
-.rows-per-page select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
+.ps-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
 
-  background: linear-gradient(
-    180deg,
-    rgba(18, 3, 5, 0.98),
-    rgba(8, 1, 2, 0.98)
+.ps-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.ps-header span {
+  color: #9ca3af;
+}
+
+/* =========================
+   STATS
+========================= */
+
+.ps-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ps-stat-card {
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.ps-stat-card h3 {
+  font-size: 1.8rem;
+  margin-bottom: 6px;
+}
+
+.ps-stat-card p {
+  color: #9ca3af;
+}
+
+/* =========================
+   FILTERS
+========================= */
+
+.ps-filters {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  margin-bottom: 24px;
+  padding: 24px;
+
+  background: rgba(17, 24, 39, 0.95);
+  border: 1px solid #1f2937;
+  border-radius: 20px;
+
+  backdrop-filter: blur(12px);
+}
+
+.ps-search {
+  width: 100%;
+  padding: 14px 18px;
+
+  border: 1px solid #374151;
+  border-radius: 14px;
+
+  background: #111827;
+  color: white;
+
+  outline: none;
+  font-size: 15px;
+
+  transition: 0.2s;
+}
+
+.ps-search:focus {
+  border-color: #2563eb;
+
+  box-shadow: 0 0 0 4px rgba(
+    37,
+    99,
+    235,
+    0.2
   );
+}
 
-  color: rgba(255, 255, 255, 0.9);
+/* =========================
+   SELECT
+========================= */
 
-  border: 1px solid rgba(232, 0, 28, 0.18);
+.ps-select {
+  width: fit-content;
+
+  padding: 12px 16px;
+
+  border-radius: 12px;
+  border: 1px solid #374151;
+
+  background: #111827;
+  color: white;
 
   cursor: pointer;
 }
-.problem-toolbar select option,
-.rows-per-page select option {
-  background: #070101; /* Kali black */
-  color: rgba(255, 255, 255, 0.9);
+
+.ps-select option {
+  background: #111827;
+  color: white;
 }
 
-/* =====================================================
-   TOOLBAR
-===================================================== */
+/* =========================
+   RANGE
+========================= */
 
-.problem-toolbar {
+.ps-range {
   display: flex;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 16px;
-
-  align-items: center;
-
-  padding: 20px;
-
-  border-radius: 18px;
-
-  border: 1px solid rgba(232, 0, 28, 0.15);
-
-  background: linear-gradient(
-    180deg,
-    rgba(18, 3, 5, 0.98),
-    rgba(8, 1, 2, 0.98)
-  );
-
-  backdrop-filter: blur(20px);
-
-  box-shadow:
-    inset 0 0 30px rgba(232, 0, 28, 0.03),
-    0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
-.problem-toolbar input,
-.problem-toolbar select {
-  height: 46px;
+.ps-range input {
+  width: 120px;
 
-  padding: 0 16px;
+  padding: 12px;
 
   border-radius: 12px;
+  border: 1px solid #374151;
 
-  border: 1px solid rgba(232, 0, 28, 0.18);
-
-  background: rgba(255, 255, 255, 0.03);
-
-  color: rgba(255, 255, 255, 0.9);
-
-  font-size: 14px;
-
-  outline: none;
-
-  transition: all 0.25s ease;
+  background: #111827;
+  color: white;
 }
 
-.problem-toolbar input {
-  flex: 1;
-  min-width: 250px;
-}
+/* =========================
+   CHIPS
+========================= */
 
-.problem-toolbar input::placeholder {
-  color: rgba(255, 255, 255, 0.45);
-}
-
-.problem-toolbar input:focus,
-.problem-toolbar select:focus {
-  border-color: rgba(232, 0, 28, 0.55);
-
-  box-shadow:
-    0 0 0 3px rgba(232, 0, 28, 0.12),
-    0 0 20px rgba(232, 0, 28, 0.15);
-}
-
-/* =====================================================
-   TABLE CONTAINER
-===================================================== */
-
-.problem-list-container {
+.ps-chip-container {
   display: flex;
-  flex-direction: column;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.problem-table-wrapper {
+.ps-chip {
+  padding: 8px 14px;
+
+  border: none;
+  border-radius: 999px;
+
+  background: #1f2937;
+  color: #d1d5db;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.ps-chip:hover {
+  background: #374151;
+}
+
+.ps-chip--active {
+  background: #2563eb;
+  color: white;
+}
+
+/* =========================
+   ACTIONS
+========================= */
+
+.ps-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ps-btn {
+  padding: 10px 16px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #1f2937;
+  color: white;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.ps-btn:hover {
+  background: #374151;
+}
+
+.ps-btn--active {
+  background: #2563eb;
+}
+
+.ps-clear {
+  padding: 10px 16px;
+
+  border: none;
+  border-radius: 12px;
+
+  background: #dc2626;
+  color: white;
+
+  cursor: pointer;
+}
+
+.ps-clear:hover {
+  background: #b91c1c;
+}
+
+/* =========================
+   TABLE
+========================= */
+
+.ps-table-wrap {
   overflow-x: auto;
 
-  border-radius: 22px;
+  background: #111827;
 
-  border: 1px solid rgba(232, 0, 28, 0.12);
+  border: 1px solid #1f2937;
+  border-radius: 18px;
 
-  background: linear-gradient(
-    180deg,
-    rgba(15, 2, 4, 0.98),
-    rgba(7, 1, 1, 0.99)
-  );
-
-  box-shadow:
-    inset 0 0 40px rgba(232, 0, 28, 0.03),
-    0 12px 40px rgba(0, 0, 0, 0.45);
+  margin-bottom: 24px;
 }
 
-/* =====================================================
-   TABLE
-===================================================== */
-
-.problem-table {
+.ps-table {
   width: 100%;
-
   border-collapse: collapse;
 }
 
-.problem-table thead {
-  background: rgba(8, 8, 8, 0.651);
-}
-
-.problem-table th {
-  padding: 20px 24px;
-
+.ps-th {
   text-align: left;
 
-  font-size: 13px;
+  padding: 18px;
 
-  font-weight: 700;
+  color: #9ca3af;
 
-  letter-spacing: 0.08em;
-
-  text-transform: uppercase;
-
-  color: rgba(255, 255, 255, 0.62);
-
-  border-bottom: 1px solid rgba(232, 0, 28, 0.12);
-}
-
-.problem-table td {
-  padding: 20px 24px;
-
-  color: rgba(255, 255, 255, 0.92);
-
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-
-  font-size: 14px;
-}
-
-.problem-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-/* =====================================================
-   ROW HOVER
-===================================================== */
-
-.problem-row {
-  cursor: pointer;
-
-  transition:
-    background 0.25s ease,
-    transform 0.25s ease;
-}
-
-.problem-row:hover {
-  background: rgba(232, 0, 28, 0.05);
-
-}
-
-.problem-title {
   font-weight: 600;
 
-  color: rgba(255, 255, 255, 0.97);
+  border-bottom: 1px solid #1f2937;
 }
 
-/* =====================================================
-   DIFFICULTY PILLS
-===================================================== */
+.ps-td {
+  padding: 18px;
 
-.difficulty-pill {
-  display: inline-flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  min-width: 74px;
-
-  padding: 6px 14px;
-
-  border-radius: 999px;
-
-  font-size: 12px;
-
-  font-weight: 700;
-
-  text-transform: capitalize;
+  border-bottom: 1px solid #1f2937;
 }
 
-.difficulty-pill.easy {
-  color: #33e47a;
-
-  background: rgba(51, 228, 122, 0.1);
-
-  border: 1px solid rgba(51, 228, 122, 0.28);
+.ps-row {
+  transition: 0.2s;
 }
 
-.difficulty-pill.medium {
-  color: #ffbc47;
-
-  background: rgba(255, 188, 71, 0.1);
-
-  border: 1px solid rgba(255, 188, 71, 0.28);
-}
-
-.difficulty-pill.hard {
-  color: #ff5c70;
-
-  background: rgba(255, 92, 112, 0.1);
-
-  border: 1px solid rgba(255, 92, 112, 0.28);
-}
-
-/* =====================================================
-   TOPICS
-===================================================== */
-
-.topic-container {
-  display: flex;
-
-  flex-wrap: wrap;
-
-  gap: 8px;
-}
-
-.topic-chip {
-  padding: 5px 12px;
-
-  border-radius: 10px;
-
-  border: 1px solid rgba(255, 255, 255, 0.08);
-
-  background: rgba(255, 255, 255, 0.04);
-
-  color: rgba(255, 255, 255, 0.78);
-
-  font-size: 12px;
-
-  white-space: nowrap;
-
-  transition: all 0.2s ease;
-}
-
-.topic-chip:hover {
-  border-color: rgba(232, 0, 28, 0.28);
-
-  background: rgba(232, 0, 28, 0.08);
-
-  color: white;
-}
-
-/* =====================================================
-   EMPTY STATE
-===================================================== */
-
-.empty-state {
-  padding: 48px !important;
-
-  text-align: center;
-
-  color: rgba(255, 255, 255, 0.55);
-}
-
-/* =====================================================
-   PAGINATION
-===================================================== */
-
-.pagination-container {
-  display: flex;
-
-  flex-wrap: wrap;
-
-  justify-content: space-between;
-
-  align-items: center;
-
-  gap: 16px;
-
-  padding: 20px;
-
-  border-radius: 18px;
-
-  border: 1px solid rgba(232, 0, 28, 0.12);
-
-  background: linear-gradient(
-    180deg,
-    rgba(14, 2, 3, 0.96),
-    rgba(7, 1, 1, 0.98)
+.ps-row:hover {
+  background: rgba(
+    255,
+    255,
+    255,
+    0.03
   );
 }
 
-.rows-per-page {
-  display: flex;
+/* =========================
+   PROBLEM LINK
+========================= */
 
-  align-items: center;
-
-  gap: 12px;
-
-  color: rgba(255, 255, 255, 0.7);
-
-  font-size: 14px;
-}
-
-.rows-per-page select {
-  height: 40px;
-
-  padding: 0 12px;
-
-  border-radius: 10px;
-
-  border: 1px solid rgba(232, 0, 28, 0.15);
-
-  background: rgba(255, 255, 255, 0.03);
-
+.ps-problem-link {
   color: white;
+
+  text-decoration: none;
+
+  font-weight: 500;
 }
 
-.pagination-info {
-  color: rgba(255, 255, 255, 0.65);
-
-  font-size: 14px;
+.ps-problem-link:hover {
+  color: #60a5fa;
 }
 
-.pagination {
+/* =========================
+   DIFFICULTY
+========================= */
+
+.ps-badge {
+  padding: 6px 12px;
+
+  border-radius: 999px;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.ps-badge--easy {
+  background: rgba(
+    34,
+    197,
+    94,
+    0.15
+  );
+
+  color: #22c55e;
+}
+
+.ps-badge--medium {
+  background: rgba(
+    251,
+    191,
+    36,
+    0.15
+  );
+
+  color: #fbbf24;
+}
+
+.ps-badge--hard {
+  background: rgba(
+    239,
+    68,
+    68,
+    0.15
+  );
+
+  color: #ef4444;
+}
+
+/* =========================
+   TOPICS
+========================= */
+
+.ps-topics {
   display: flex;
-
-  align-items: center;
-
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.pagination-btn {
-  width: 40px;
+.ps-topic-chip {
+  padding: 6px 10px;
 
-  height: 40px;
+  border-radius: 999px;
+
+  background: #1f2937;
+
+  font-size: 12px;
+}
+
+.ps-topic-chip--more {
+  background: #374151;
+}
+
+/* =========================
+   ACCEPTANCE
+========================= */
+
+.ps-acceptance {
+  font-weight: 600;
+  color: #d1d5db;
+}
+
+/* =========================
+   FEATURED / PREMIUM
+========================= */
+
+.ps-premium,
+.ps-featured {
+  margin-left: 8px;
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+
+.ps-empty {
+  padding: 48px;
+  text-align: center;
+}
+
+.ps-empty-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.ps-empty h3 {
+  font-size: 1.2rem;
+}
+
+.ps-empty p {
+  color: #9ca3af;
+}
+
+/* =========================
+   SKELETON
+========================= */
+
+.ps-skel {
+  border-radius: 8px;
+
+  background: linear-gradient(
+    90deg,
+    #1f2937 25%,
+    #374151 50%,
+    #1f2937 75%
+  );
+
+  background-size: 200% 100%;
+
+  animation: ps-loading 1.5s infinite;
+}
+
+.ps-skel--sm {
+  width: 50px;
+  height: 16px;
+}
+
+.ps-skel--md {
+  width: 90px;
+  height: 16px;
+}
+
+.ps-skel--lg {
+  width: 180px;
+  height: 16px;
+}
+
+@keyframes ps-loading {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* =========================
+   PAGINATION
+========================= */
+
+.ps-pagination {
+  display: flex;
+
+  justify-content: center;
+  align-items: center;
+
+  gap: 8px;
+
+  flex-wrap: wrap;
+}
+
+.ps-page-btn {
+  min-width: 42px;
+  height: 42px;
 
   border: none;
-
   border-radius: 12px;
 
-  background: rgba(255, 255, 255, 0.03);
-
-  color: rgba(255, 255, 255, 0.82);
+  background: #1f2937;
+  color: white;
 
   cursor: pointer;
 
-  transition: all 0.25s ease;
+  transition: 0.2s;
 }
 
-.pagination-btn:hover:not(:disabled) {
-  background: rgba(232, 0, 28, 0.08);
-
-  color: white;
-
+.ps-page-btn:hover:not(:disabled) {
   transform: translateY(-2px);
 
-  box-shadow: 0 0 18px rgba(232, 0, 28, 0.18);
+  background: #374151;
 }
 
-.pagination-btn.active {
-  background: rgba(232, 0, 28, 0.16);
-
-  color: white;
-
-  border: 1px solid rgba(232, 0, 28, 0.35);
-
-  box-shadow:
-    0 0 20px rgba(232, 0, 28, 0.18),
-    inset 0 0 12px rgba(232, 0, 28, 0.08);
+.ps-page-btn.active {
+  background: #2563eb;
 }
 
-.pagination-btn:disabled {
-  opacity: 0.35;
-
+.ps-page-btn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.pagination-ellipsis {
-  padding: 0 8px;
-
-  color: rgba(255, 255, 255, 0.45);
-}
-
-/* =====================================================
+/* =========================
    RESPONSIVE
-===================================================== */
+========================= */
 
-@media (max-width: 900px) {
-  .pagination-container {
+@media (max-width: 768px) {
+  .ps-page {
+    padding: 16px;
+  }
+
+  .ps-header {
     flex-direction: column;
-
     align-items: flex-start;
+    gap: 8px;
   }
 
-  .pagination {
-    flex-wrap: wrap;
-  }
-
-  .problem-table th,
-  .problem-table td {
-    padding: 16px;
-  }
-}
-
-@media (max-width: 600px) {
-  .problem-page {
+  .ps-filters {
     padding: 16px;
   }
 
-  .problem-toolbar {
-    padding: 16px;
+  .ps-range input {
+    width: 100%;
   }
 
-  .problem-toolbar input {
-    min-width: 100%;
+  .ps-table {
+    min-width: 750px;
+  }
+
+  .ps-stat-card h3 {
+    font-size: 1.5rem;
   }
 }
