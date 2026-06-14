@@ -1,3 +1,4 @@
+// src/pages/Workspace.jsx
 import { useEffect, useState, useRef } from "react";
 import { Layout, Model } from "flexlayout-react";
 import "flexlayout-react/style/dark.css";
@@ -13,17 +14,10 @@ import TestCases from "../components/Problem/TestCases";
 import { useParams } from "react-router-dom";
 import { API } from "../config/axios";
 
-// FIX: Use env variable instead of hardcoded localhost
-const judgeAPI = {
-  post: (path, body) =>
-    fetch(`${import.meta.env.VITE_JUDGE_URL}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    }).then((r) => r.json()),
-};
+// All judge calls now go through YOUR backend — no direct judge access from frontend.
+// Backend stitches header + userCode + driver before forwarding to judge.
 
-const json = {
+const layoutJson = {
   global: {
     tabEnableClose: false,
     tabEnableRename: false,
@@ -68,9 +62,9 @@ const json = {
 };
 
 export default function Workspace() {
-  const [model] = useState(() => Model.fromJson(json));
+  const [model] = useState(() => Model.fromJson(layoutJson));
   const [loading, setLoading] = useState(false);
-  const [problem, setProblem] = useState(null); // FIX: null instead of {} so guards work correctly
+  const [problem, setProblem] = useState(null);
 
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,7 +72,8 @@ export default function Workspace() {
   const [isErrorOutput, setIsErrorOutput] = useState(false);
   const [submitResults, setSubmitResults] = useState(null);
 
-  const codeRef = useRef({ code: "", lang: "cpp" });
+  // { code, judgeKey } — judgeKey is judge-ready: "javascript", "python", "cpp" etc.
+  const codeRef = useRef({ code: "", judgeKey: "cpp" });
 
   const { slug } = useParams();
 
@@ -86,7 +81,6 @@ export default function Workspace() {
     async function loadProblem() {
       try {
         setLoading(true);
-        // FIX: Reset state when navigating between problems
         setProblem(null);
         setSubmitResults(null);
         setTerminalOutput("");
@@ -102,14 +96,23 @@ export default function Workspace() {
     loadProblem();
   }, [slug]);
 
-  async function handleRun(code, lang) {
-    codeRef.current = { code, lang };
+  function handleCodeChange(code, judgeKey) {
+    codeRef.current = { code, judgeKey };
+  }
+
+  // /run — free run, backend stitches code, returns stdout/stderr
+  async function handleRun(code, judgeKey) {
+    codeRef.current = { code, judgeKey };
     setIsRunning(true);
     setTerminalOutput("");
     setIsErrorOutput(false);
 
     try {
-      const data = await judgeAPI.post("/run", { language: lang, code });
+      const res = await API.post(`/problemSet/${slug}/run`, {
+        language: judgeKey,
+        code,
+      });
+      const data = res.data;
 
       if (data.timedOut) {
         setIsErrorOutput(true);
@@ -123,16 +126,17 @@ export default function Workspace() {
       }
     } catch (err) {
       setIsErrorOutput(true);
-      setTerminalOutput(err?.message || "An error occurred");
+      // axios wraps the error body in err.response.data
+      setTerminalOutput(err.response?.data?.error || err.message);
     } finally {
       setIsRunning(false);
     }
   }
 
+  // /submit — backend fetches hidden cases, stitches code, runs all cases
   async function handleSubmit(customCases = []) {
-    const { code, lang } = codeRef.current;
+    const { code, judgeKey } = codeRef.current;
 
-    if (!problem?.visibleTestCases?.length) return;
     if (!code.trim()) {
       setIsErrorOutput(true);
       setTerminalOutput("Please write some code before submitting.");
@@ -142,35 +146,25 @@ export default function Workspace() {
     setIsSubmitting(true);
     setSubmitResults(null);
 
-    // Merge DB visible cases + any custom cases passed up from TestCases
-    const testCases = [
-      ...problem.visibleTestCases.map((tc) => ({
-        input: tc.input,
-        output: tc.output,
-      })),
-      ...customCases,
-    ];
-
     try {
-      const data = await judgeAPI.post("/run-tests", {
-        language: lang,
+      const res = await API.post(`/problemSet/${slug}/submit`, {
+        language: judgeKey,
         code,
-        testCases,
+        customCases,
       });
+      const data = res.data;
 
-      // Log full raw JSON to browser console as requested
-      console.log("[Judge /run-tests response]", data);
-
+      console.log("[submit response]", data);
       setSubmitResults(data.results || []);
     } catch (err) {
       setIsErrorOutput(true);
-      setTerminalOutput(err?.message || "Submission failed");
-      console.error("[Judge error]", err);
+      setTerminalOutput(err.response?.data?.error || err.message);
+      console.error("[submit error]", err);
     } finally {
       setIsSubmitting(false);
     }
   }
-  
+
   function clearOutput() {
     setTerminalOutput("");
     setIsErrorOutput(false);
@@ -184,13 +178,9 @@ export default function Workspace() {
             problem={problem}
             onRun={handleRun}
             isRunning={isRunning}
-            // FIX: onCodeChange keeps codeRef in sync on every keystroke and lang switch
-            onCodeChange={(code, lang) => {
-              codeRef.current = { code, lang };
-            }}
+            onCodeChange={handleCodeChange}
           />
         );
-
       case "Output":
         return (
           <Output
@@ -199,11 +189,8 @@ export default function Workspace() {
             clearOutput={clearOutput}
           />
         );
-
       case "ProblemDescription":
-        // FIX: key prop forces fresh mount when navigating between problems
         return <ProblemDescription key={slug} problem={problem} />;
-
       case "TestCases":
         return (
           <TestCases
@@ -213,7 +200,6 @@ export default function Workspace() {
             isSubmitting={isSubmitting}
           />
         );
-
       default:
         return <div className="placeholder">{node.getName()}</div>;
     }

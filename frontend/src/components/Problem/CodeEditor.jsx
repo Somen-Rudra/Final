@@ -1,3 +1,4 @@
+// src/components/Problem/CodeEditor.jsx
 import { useState, useRef, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import { VscPlay } from "react-icons/vsc";
@@ -5,7 +6,7 @@ import "../../styles/editor.css";
 import { defineCrimsonTheme } from "./problemConfig/editorTheme";
 import { MONACO_OPTIONS, LANGUAGES } from "./problemConfig/editorConfig";
 
-export default function CodeEditor({ problem, onRun, isRunning }) {
+export default function CodeEditor({ problem, onRun, onCodeChange, isRunning }) {
   const [langKey, setLangKey] = useState("cpp");
   const [editorCodes, setEditorCodes] = useState({});
 
@@ -19,23 +20,32 @@ export default function CodeEditor({ problem, onRun, isRunning }) {
 
   // Filter to only languages this problem supports
   const availableLanguages = Object.entries(LANGUAGES).filter(
-    ([_, config]) => problem?.languages?.[config.dbKey],
+    ([, config]) => problem?.languages?.[config.dbKey],
   );
 
   // Set default lang to first available when problem loads
   useEffect(() => {
     if (!problem?.languages) return;
     const firstAvailable = Object.entries(LANGUAGES).find(
-      ([_, config]) => problem.languages[config.dbKey],
+      ([, config]) => problem.languages[config.dbKey],
     );
-    if (firstAvailable) setLangKey(firstAvailable[0]);
-  }, [problem]);
+    if (firstAvailable) {
+      const key = firstAvailable[0];
+      setLangKey(key);
+      // Notify parent of the initial language
+      if (onCodeChange) {
+        const stub = problem.languages[firstAvailable[1].dbKey]?.codeStub || "";
+        onCodeChange(stub, LANGUAGES[key].judgeKey);
+      }
+    }
+  }, [problem]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Populate editor codes from problem.languages
+  // Populate editor codes from problem.languages stubs
   useEffect(() => {
     if (!problem?.languages) return;
 
     setEditorCodes((prev) => {
+      // Don't overwrite codes the user has already typed
       if (Object.keys(prev).length > 0) return prev;
 
       const codes = {};
@@ -43,13 +53,29 @@ export default function CodeEditor({ problem, onRun, isRunning }) {
         const langData = problem.languages[config.dbKey];
         codes[lang] = langData?.codeStub || "";
       });
-
       return codes;
     });
   }, [problem]);
 
+  // When the user switches language, sync codeRef in Workspace
+  function handleLangChange(newKey) {
+    setLangKey(newKey);
+    if (onCodeChange) {
+      onCodeChange(editorCodes[newKey] || "", LANGUAGES[newKey].judgeKey);
+    }
+  }
+
+  // When the user edits code, sync codeRef in Workspace
+  function handleCodeChange(value) {
+    const newCode = value || "";
+    setEditorCodes((prev) => ({ ...prev, [langKey]: newCode }));
+    if (onCodeChange) {
+      onCodeChange(newCode, LANGUAGES[langKey].judgeKey);
+    }
+  }
+
   function handleRun() {
-    if (onRun) onRun(editorCodes[langKey] || "", langKey);
+    if (onRun) onRun(editorCodes[langKey] || "", LANGUAGES[langKey].judgeKey);
   }
 
   // Guard: don't render editor until we have codes and a valid langKey
@@ -72,7 +98,7 @@ export default function CodeEditor({ problem, onRun, isRunning }) {
             <select
               id="lang-select"
               value={langKey}
-              onChange={(e) => setLangKey(e.target.value)}
+              onChange={(e) => handleLangChange(e.target.value)}
               className="styled-select"
             >
               {availableLanguages.map(([key, lang]) => (
@@ -118,9 +144,7 @@ export default function CodeEditor({ problem, onRun, isRunning }) {
             key={langKey}
             language={LANGUAGES[langKey]?.monacoLang}
             value={editorCodes[langKey] || ""}
-            onChange={(value) => {
-              setEditorCodes((prev) => ({ ...prev, [langKey]: value || "" }));
-            }}
+            onChange={handleCodeChange}
             beforeMount={defineCrimsonTheme}
             onMount={handleEditorDidMount}
             theme="crimson"

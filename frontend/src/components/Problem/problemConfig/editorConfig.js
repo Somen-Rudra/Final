@@ -1,88 +1,68 @@
+// src/components/Problem/problemConfig/editorConfig.js
+
+export const MONACO_OPTIONS = {
+  fontSize: 14,
+  fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+  minimap: { enabled: true },
+  scrollBeyondLastLine: true,
+  automaticLayout: true,
+  tabSize: 2,
+  wordWrap: "on",
+  lineNumbers: "on",
+  renderWhitespace: "selection",
+  smoothScrolling: true,
+  cursorBlinking: "smooth",
+  padding: { top: 12, bottom: 12 },
+};
+
+/**
+ * key        – internal UI key (component state / <select> value)
+ * name       – display label
+ * monacoLang – Monaco editor language ID
+ * dbKey      – key in problem.languages map (Mongoose ALLOWED_LANGUAGES)
+ * judgeKey   – language string the judge server expects (must match judge's LANGUAGES keys exactly)
+ */
 export const LANGUAGES = {
   cpp: {
     name: "C++",
     monacoLang: "cpp",
     dbKey: "cpp",
+    judgeKey: "cpp",
   },
   c: {
     name: "C",
     monacoLang: "c",
     dbKey: "c",
+    judgeKey: "c",
   },
-  javascript: {
+  js: {
     name: "JavaScript",
     monacoLang: "javascript",
     dbKey: "js",
+    judgeKey: "javascript", // judge uses "javascript", DB stores "js"
   },
-  python: {
+  py: {
     name: "Python",
     monacoLang: "python",
     dbKey: "py",
+    judgeKey: "python", // judge uses "python", DB stores "py"
   },
   java: {
     name: "Java",
     monacoLang: "java",
     dbKey: "java",
+    judgeKey: "java",
   },
   kotlin: {
     name: "Kotlin",
     monacoLang: "kotlin",
     dbKey: "kotlin",
+    judgeKey: "kotlin",
   },
   swift: {
     name: "Swift",
     monacoLang: "swift",
     dbKey: "swift",
-  },
-};
-
-export const MONACO_OPTIONS = {
-  wordWrap: "on",
-  fontSize: 15,
-  fontFamily: "JetBrains Mono",
-
-  quickSuggestions: {
-    other: true,
-    comments: false,
-    strings: false,
-  },
-
-  suggestOnTriggerCharacters: true,
-  wordBasedSuggestions: "allDocuments",
-
-  parameterHints: {
-    enabled: true,
-  },
-
-  minimap: {
-    enabled: true,
-    renderCharacters: true,
-    scale: 2,
-  },
-
-  smoothScrolling: true,
-
-  cursorBlinking: "smooth",
-  cursorSmoothCaretAnimation: "on",
-
-  padding: {
-    top: 20,
-    bottom: 20,
-  },
-
-  roundedSelection: true,
-
-  renderLineHighlight: "all",
-
-  scrollbar: {
-    verticalScrollbarSize: 8,
-    horizontalScrollbarSize: 8,
-  },
-
-  overviewRulerBorder: false,
-
-  hover: {
-    enabled: true,
-    delay: 300,
+    judgeKey: "swift",
   },
 };
