@@ -9,6 +9,7 @@ import morgan from "morgan";
 import authRouter from "./routes/authRoutes.js";
 import userRouter from "./routes/userRoutes.js";
 import problemRouter from "./routes/problemRoutes.js"
+import aiRouter from "./routes/aiRoutes.js";
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use(cookieParser());
 app.use("/auth", authRouter);
 app.use("/user", userRouter);
 app.use("/problemSet", problemRouter);
+app.use("/ai", aiRouter);
 
 const startServer = async () => {
   try {
